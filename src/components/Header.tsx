@@ -146,8 +146,17 @@ export function Header({ user, onOpenAuth, onOpenWatchlist, onShowRestricted, on
           </div>
           
           {searchResults.length > 0 && (
-            <div className="absolute top-full right-0 w-full md:w-[380px] max-h-[400px] md:max-h-[450px] overflow-y-auto bg-modal-bg backdrop-blur-xl border border-white/10 rounded-2xl mt-2 md:mt-3 z-[2000] shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-slideDown">
-              {searchResults.map((item) => {
+            <>
+              {/* Backdrop to prevent click-through to video player */}
+              <div 
+                className="fixed inset-0 z-[1900] bg-transparent cursor-default" 
+                onClick={() => {
+                  setSearchResults([]);
+                  setIsSearchExpanded(false);
+                }}
+              />
+              <div className="absolute top-full right-0 w-full md:w-[380px] max-h-[400px] md:max-h-[450px] overflow-y-auto bg-modal-bg backdrop-blur-xl border border-white/10 rounded-2xl mt-2 md:mt-3 z-[2000] shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-slideDown pointer-events-auto">
+                {searchResults.map((item) => {
                 if (!item.poster_path && !item.profile_path) return null;
                 const title = item.title || item.name;
                 const date = item.release_date || item.first_air_date;
@@ -180,10 +189,11 @@ export function Header({ user, onOpenAuth, onOpenWatchlist, onShowRestricted, on
                 );
               })}
             </div>
-          )}
-        </div>
+          </>
+        )}
+      </div>
 
-        {/* User Menu */}
+      {/* User Menu */}
         <div className={`shrink-0 ${isSearchExpanded ? 'hidden' : 'block'}`}>
           {user ? (
             <div className="relative">

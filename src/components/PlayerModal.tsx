@@ -296,24 +296,33 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
                   ) : episodes.length === 0 ? (
                     <div className="text-center p-12 text-text-secondary"><p>No episodes available</p></div>
                   ) : (
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
                       {episodes.map((ep: any) => {
-                        const isActive = ep.episode_number === episodeNum && seasonNum === seasonNum;
+                        const isActive = ep.episode_number === episodeNum;
                         return (
                           <div 
                             key={ep.id}
-                            className={`bg-glass-bg border rounded-xl overflow-hidden cursor-pointer transition-all duration-300 relative hover:-translate-y-1 hover:border-accent hover:shadow-[0_10px_30px_rgba(255,69,0,0.2)] ${isActive ? 'border-accent bg-accent/10' : 'border-white/10'}`}
+                            className={`bg-glass-bg border rounded-xl overflow-hidden cursor-pointer transition-all duration-300 relative hover:-translate-y-1 hover:border-accent hover:shadow-[0_10px_30px_rgba(255,69,0,0.2)] flex flex-row md:flex-col ${isActive ? 'border-accent bg-accent/10' : 'border-white/10'}`}
                             onClick={() => {
                               setEpisodeNum(ep.episode_number);
                               document.querySelector('.player-main')?.scrollTo({ top: 0, behavior: 'smooth' });
                             }}
                           >
-                            {isActive && <div className="absolute top-2 right-2 bg-accent text-white px-2 py-1 rounded text-xs font-bold z-10">NOW PLAYING</div>}
-                            <img src={ep.still_path ? `https://image.tmdb.org/t/p/w500${ep.still_path}` : 'https://via.placeholder.com/400x225?text=No+Image'} alt={ep.name} className="w-full h-[160px] object-cover block" />
-                            <div className="p-4">
-                              <div className="text-text-secondary text-sm mb-1 font-semibold">Episode {ep.episode_number}</div>
-                              <div className="text-base font-semibold mb-2 line-clamp-2">{ep.name || `Episode ${ep.episode_number}`}</div>
-                              <div className="text-sm text-text-secondary leading-[1.4] line-clamp-2">{ep.overview || 'No description available.'}</div>
+                            <div className="w-[120px] md:w-full h-[80px] md:h-[160px] relative shrink-0">
+                              <img src={ep.still_path ? `https://image.tmdb.org/t/p/w500${ep.still_path}` : 'https://via.placeholder.com/400x225?text=No+Image'} alt={ep.name} className="w-full h-full object-cover block" />
+                              {isActive && (
+                                <div className="absolute inset-0 bg-accent/30 flex items-center justify-center md:hidden">
+                                  <PlayCircle className="w-6 h-6 text-white animate-pulse" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="p-3 md:p-4 flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="text-text-secondary text-[0.7rem] md:text-sm font-semibold uppercase tracking-wider">Episode {ep.episode_number}</div>
+                                {isActive && <div className="hidden md:block bg-accent text-white px-2 py-0.5 rounded text-[0.6rem] font-bold">NOW PLAYING</div>}
+                              </div>
+                              <div className="text-sm md:text-base font-semibold mb-1 md:mb-2 line-clamp-1 md:line-clamp-2 text-text-primary">{ep.name || `Episode ${ep.episode_number}`}</div>
+                              <div className="text-[0.75rem] md:text-sm text-text-secondary leading-[1.4] line-clamp-2">{ep.overview || 'No description available.'}</div>
                             </div>
                           </div>
                         );
