@@ -50,6 +50,19 @@ export default function App() {
     setActiveMovieId(id);
     setActiveMediaType(mediaType);
     setIsDetailOpen(true);
+    // If player is open, we might want to keep it or close it. 
+    // Usually, opening a new detail should at least hide the player or close it.
+    setIsPlayerOpen(false); 
+  };
+
+  const handleGoHome = () => {
+    setIsDetailOpen(false);
+    setIsPlayerOpen(false);
+    setIsWatchlistOpen(false);
+    setIsAuthOpen(false);
+    setIsRestrictedOpen(false);
+    setIsConfirmOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleWatchNow = (item: any, mediaType: 'movie' | 'tv') => {
@@ -71,6 +84,7 @@ export default function App() {
         onOpenWatchlist={() => setIsWatchlistOpen(true)}
         onShowRestricted={() => setIsRestrictedOpen(true)}
         onOpenDetail={handleOpenDetail}
+        onGoHome={handleGoHome}
       />
 
       <main>
