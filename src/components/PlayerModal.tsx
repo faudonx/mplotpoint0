@@ -34,14 +34,29 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const [watchProgress, setWatchProgress] = useState<Record<string, any>>({});
   const [currentTime, setCurrentTime] = useState(0);
   const [initialSeekTime, setInitialSeekTime] = useState(0);
+  const [stableViews] = useState(() => (Math.random() * 5 + 0.5).toFixed(1));
 
   // Load watch progress
   const loadWatchProgress = async () => {
     if (!auth.currentUser || !item) return;
+    const uid = auth.currentUser.uid;
+    const currentKey = mediaType === 'movie' ? 'movie' : `s${seasonNum}e${episodeNum}`;
+    const storageKey = `progress_${uid}_${item.id}_${currentKey}`;
+    
     try {
+      // 1. Check Local Storage first for most recent progress
+      const localData = localStorage.getItem(storageKey);
+      if (localData) {
+        const parsed = JSON.parse(localData);
+        setInitialSeekTime(parsed.timestamp || 0);
+        setCurrentTime(parsed.timestamp || 0);
+        return;
+      }
+
+      // 2. Fallback to Firestore
       const q = query(
         collection(db, 'watchProgress'),
-        where('userId', '==', auth.currentUser.uid),
+        where('userId', '==', uid),
         where('movieId', '==', item.id)
       );
       const snap = await getDocs(q);
@@ -53,8 +68,6 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
       });
       setWatchProgress(progress);
       
-      // Set initial time for current item
-      const currentKey = mediaType === 'movie' ? 'movie' : `s${seasonNum}e${episodeNum}`;
       const savedTime = progress[currentKey]?.timestamp || 0;
       setInitialSeekTime(savedTime);
       setCurrentTime(savedTime);
@@ -73,7 +86,20 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
     if (!isOpen || !item) return;
     
     const interval = setInterval(() => {
-      setCurrentTime(prev => prev + 1);
+      setCurrentTime(prev => {
+        const next = prev + 1;
+        // Save to local storage every second for maximum reliability
+        const uid = auth.currentUser?.uid;
+        if (uid) {
+          const currentKey = mediaType === 'movie' ? 'movie' : `s${seasonNum}e${episodeNum}`;
+          const storageKey = `progress_${uid}_${item.id}_${currentKey}`;
+          localStorage.setItem(storageKey, JSON.stringify({
+            timestamp: next,
+            lastUpdated: new Date().toISOString()
+          }));
+        }
+        return next;
+      });
     }, 1000);
 
     return () => {
@@ -82,9 +108,9 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
     };
   }, [isOpen, item, seasonNum, episodeNum]);
 
-  // Periodic save
+  // Periodic sync to DB (Every 30 seconds instead of 15 to reduce requests)
   useEffect(() => {
-    if (currentTime > 0 && currentTime % 15 === 0) {
+    if (currentTime > 0 && currentTime % 30 === 0) {
       saveCurrentProgress();
     }
   }, [currentTime]);
@@ -105,18 +131,16 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
         episode: mediaType === 'tv' ? episodeNum : null,
         timestamp: currentTime,
         lastUpdated: new Date(),
-        // We estimate duration or use a fixed one if not available
         duration: mediaType === 'movie' ? (item.runtime * 60 || 7200) : 2400 
       }, { merge: true });
       
-      // Update local state to reflect progress immediately
       const key = mediaType === 'movie' ? 'movie' : `s${seasonNum}e${episodeNum}`;
       setWatchProgress(prev => ({
         ...prev,
         [key]: { timestamp: currentTime, duration: mediaType === 'movie' ? (item.runtime * 60 || 7200) : 2400 }
       }));
     } catch (e) {
-      console.error('Error saving progress:', e);
+      console.error('Error saving progress to DB:', e);
     }
   };
   
@@ -313,10 +337,10 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
             <div className="w-full relative pb-[56.25%] bg-black shrink-0 group">
               <iframe src={finalEmbedUrl} allowFullScreen className="absolute top-0 left-0 w-full h-full border-none"></iframe>
               <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
-                {currentTime > 0 && (
+                {initialSeekTime > 0 && (
                   <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-[0.7rem] font-medium text-white flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                    Resumed from {Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')}
+                    Resumed from {Math.floor(initialSeekTime / 60)}:{(initialSeekTime % 60).toString().padStart(2, '0')}
                   </div>
                 )}
                 <button 
@@ -335,7 +359,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
             <div className="p-6 md:px-8">
               <h2 className="text-2xl font-bold mb-2">{title}{mediaType === 'tv' ? ` - S${seasonNum}E${episodeNum}` : ''}</h2>
               <div className="flex items-center gap-8 text-text-secondary text-sm mb-6 flex-wrap">
-                <span className="flex items-center gap-1.5"><PlayCircle className="w-4 h-4" /> {(Math.random() * 5 + 0.5).toFixed(1)}M views</span>
+                <span className="flex items-center gap-1.5"><PlayCircle className="w-4 h-4" /> {stableViews}M views</span>
                 <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {item.release_date?.slice(0,10) || item.first_air_date?.slice(0,10) || 'N/A'}</span>
                 <span className="flex items-center gap-1.5"><Star className="w-4 h-4 text-[#ffb400]" /> {item.vote_average?.toFixed(1) || 'N/A'}/10</span>
               </div>
