@@ -35,6 +35,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const [currentTime, setCurrentTime] = useState(0);
   const [initialSeekTime, setInitialSeekTime] = useState(0);
   const [stableViews] = useState(() => (Math.random() * 5 + 0.5).toFixed(1));
+  const [quality, setQuality] = useState(() => localStorage.getItem('preferred_quality') || '1080');
 
   // Load watch progress
   const loadWatchProgress = async () => {
@@ -228,8 +229,17 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
     ? `https://vidsrc.icu/embed/movie/${item.id}`
     : `https://vidsrc.icu/embed/tv/${item.id}/${seasonNum}/${episodeNum}`;
 
-  // Use initialSeekTime for the iframe URL to prevent reloads when currentTime updates
-  const finalEmbedUrl = initialSeekTime > 10 ? `${embedUrl}${embedUrl.includes('?') ? '&' : '?'}t=${initialSeekTime}` : embedUrl;
+  // Use initialSeekTime and quality for the iframe URL
+  let finalEmbedUrl = embedUrl;
+  const params = new URLSearchParams();
+  if (initialSeekTime > 10) params.append('t', initialSeekTime.toString());
+  // Some embeds support quality/res params, we'll include it just in case
+  if (quality) params.append('quality', quality);
+  
+  const queryString = params.toString();
+  if (queryString) {
+    finalEmbedUrl += (finalEmbedUrl.includes('?') ? '&' : '?') + queryString;
+  }
 
   const handleLike = async () => {
     if (!auth.currentUser) return onShowRestricted();
@@ -315,7 +325,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const nickname = userData?.nickname || auth.currentUser?.email?.split('@')[0] || 'User';
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[4000] animate-fadeIn pt-[60px] md:pt-[72px]">
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[2000] animate-fadeIn pt-[60px] md:pt-[72px]">
       <div className="w-full h-full bg-modal-bg flex flex-col overflow-hidden relative">
         
         {/* Floating Back Button */}
@@ -352,6 +362,28 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
                 >
                   <Expand className="w-4 h-4" /> Fullscreen
                 </button>
+                
+                {/* Quality Selector */}
+                <div className="bg-black/70 backdrop-blur-md border border-white/10 rounded-lg flex items-center gap-2 px-3 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
+                  <span className="text-[0.7rem] text-white/60 font-medium uppercase tracking-wider">Quality:</span>
+                  <select 
+                    className="bg-transparent border-none text-white text-xs font-bold cursor-pointer outline-none"
+                    value={quality}
+                    onChange={(e) => {
+                      const newQuality = e.target.value;
+                      setQuality(newQuality);
+                      localStorage.setItem('preferred_quality', newQuality);
+                      // Reload iframe with new quality
+                      setInitialSeekTime(currentTime);
+                    }}
+                  >
+                    <option value="2160" className="bg-bg-base">4K</option>
+                    <option value="1080" className="bg-bg-base">1080p</option>
+                    <option value="720" className="bg-bg-base">720p</option>
+                    <option value="480" className="bg-bg-base">480p</option>
+                    <option value="360" className="bg-bg-base">360p</option>
+                  </select>
+                </div>
               </div>
             </div>
 

@@ -70,8 +70,8 @@ export function WatchlistModal({ isOpen, onClose, onOpenDetail, onShowConfirm }:
   };
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-start justify-center z-[4000] animate-fadeIn overflow-y-auto pt-20 pb-10 px-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="w-full max-w-[1200px] h-auto bg-modal-bg rounded-2xl p-5 md:p-8 border border-white/10 relative animate-scaleIn shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[250] animate-fadeIn" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="w-[90%] max-w-[1200px] max-h-[90vh] bg-modal-bg rounded-2xl p-8 border border-white/10 relative overflow-y-auto animate-scaleIn">
         <div className="flex items-center justify-between mb-8 pb-4 border-b-2 border-white/10">
           <h2 className="text-3xl font-bold flex items-center gap-3">
             <List className="w-8 h-8 text-accent" /> My Watchlist
