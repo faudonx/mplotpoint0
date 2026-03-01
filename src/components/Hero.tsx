@@ -39,7 +39,7 @@ export function Hero({ onOpenDetail, user, onShowRestricted }: any) {
   };
 
   return (
-    <section className="h-screen flex flex-col xl:flex-row items-center justify-center xl:justify-between relative px-6 md:px-16 overflow-hidden">
+    <section className="min-h-screen flex flex-col xl:flex-row items-center justify-center xl:justify-between relative px-6 md:px-16 overflow-hidden pt-20 md:pt-0">
       <div 
         className="absolute inset-0 bg-cover bg-center z-0 transition-all duration-700 ease-in-out brightness-[0.85]"
         style={{ backgroundImage: `url(https://image.tmdb.org/t/p/original${activeMovie?.backdrop_path})` }}
@@ -51,7 +51,7 @@ export function Hero({ onOpenDetail, user, onShowRestricted }: any) {
         }}
       />
 
-      <div className="max-w-full xl:max-w-[550px] z-20 relative text-center xl:text-left mt-20 xl:mt-0">
+      <div className="max-w-full xl:max-w-[550px] z-20 relative text-center xl:text-left mt-10 md:mt-20 xl:mt-0">
         <h1 className="text-[clamp(2.5rem,5vw,4.2rem)] font-extrabold leading-[1.05] mb-5 text-shadow-[0_4px_20px_rgba(0,0,0,0.6)] bg-gradient-to-br from-white to-[#e0e0ff] bg-clip-text text-transparent">
           {activeMovie?.title}
         </h1>

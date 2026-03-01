@@ -98,7 +98,7 @@ export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, o
           <div className="text-center p-8">Loading...</div>
         ) : item ? (
           <div className="flex gap-6 md:gap-8 flex-col md:flex-row">
-            <div className="w-[140px] md:w-[260px] md:flex-[0_0_260px] mx-auto md:mx-0 rounded-2xl overflow-hidden shadow-[0_20px_30px_black] shrink-0">
+            <div className="w-[180px] md:w-[260px] md:flex-[0_0_260px] mx-auto md:mx-0 rounded-2xl overflow-hidden shadow-[0_20px_30px_black] shrink-0">
               <img src={`https://image.tmdb.org/t/p/w500${item.poster_path}`} alt={item.title || item.name} className="w-full h-auto block" />
             </div>
             
