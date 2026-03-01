@@ -245,7 +245,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
       <div className="w-full h-full bg-modal-bg flex flex-col overflow-hidden">
         
         {/* Header */}
-        <div className="bg-[#050a10]/95 p-3 md:p-4 md:px-8 flex items-center justify-between gap-4 border-b border-white/10 shrink-0 backdrop-blur-md flex-wrap">
+        <div className="bg-[#050a10]/95 p-3 md:p-4 md:px-8 flex items-center justify-between gap-4 border-b border-white/10 shrink-0 backdrop-blur-md flex-wrap relative z-[100]">
           <div className="flex items-center gap-3 md:gap-6 order-1">
             <button className="bg-transparent border-none text-white p-1.5 md:p-2 rounded-full cursor-pointer transition-colors hover:text-accent hover:bg-white/10 flex items-center justify-center" onClick={onClose}>
               <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
@@ -327,7 +327,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
               />
             </div>
             {searchResults.length > 0 && (
-              <div className="absolute top-full right-0 w-full md:w-[380px] max-h-[400px] md:max-h-[450px] overflow-y-auto bg-modal-bg backdrop-blur-xl border border-white/10 rounded-2xl mt-2 md:mt-3 z-[150] shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-slideDown">
+              <div className="absolute top-full right-0 w-full md:w-[380px] max-h-[400px] md:max-h-[450px] overflow-y-auto bg-modal-bg backdrop-blur-xl border border-white/10 rounded-2xl mt-2 md:mt-3 z-[200] shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-slideDown">
                 {searchResults.map((searchItem) => {
                   if (!searchItem.poster_path && !searchItem.profile_path) return null;
                   const searchTitle = searchItem.title || searchItem.name;

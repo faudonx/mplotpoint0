@@ -76,7 +76,7 @@ export function Header({ user, onOpenAuth, onOpenWatchlist, onShowRestricted, on
   const initial = nickname.charAt(0).toUpperCase();
 
   return (
-    <header className={`fixed top-0 w-full z-50 transition-all duration-300 flex flex-wrap items-center justify-between px-4 md:px-16 py-3 md:py-4 gap-y-3 gap-x-4 ${scrolled ? 'bg-[#050a10]/95 shadow-[0_4px_30px_rgba(0,0,0,0.4)]' : 'bg-[#050a10]/85 backdrop-blur-md border-b border-white/10'}`}>
+    <header className={`fixed top-0 w-full z-[1000] transition-all duration-300 flex flex-wrap items-center justify-between px-4 md:px-16 py-3 md:py-4 gap-y-3 gap-x-4 ${scrolled ? 'bg-[#050a10]/95 shadow-[0_4px_30px_rgba(0,0,0,0.4)]' : 'bg-[#050a10]/85 backdrop-blur-md border-b border-white/10'}`}>
       <div className="text-xl md:text-2xl font-bold tracking-tighter bg-gradient-to-br from-white to-accent bg-clip-text text-transparent order-1">
         MPlotPoint
       </div>
@@ -172,7 +172,7 @@ export function Header({ user, onOpenAuth, onOpenWatchlist, onShowRestricted, on
         </div>
         
         {searchResults.length > 0 && (
-          <div className="absolute top-full right-0 w-full md:w-[380px] max-h-[400px] md:max-h-[450px] overflow-y-auto bg-modal-bg backdrop-blur-xl border border-white/10 rounded-2xl mt-2 md:mt-3 z-[150] shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-slideDown">
+          <div className="absolute top-full right-0 w-full md:w-[380px] max-h-[400px] md:max-h-[450px] overflow-y-auto bg-modal-bg backdrop-blur-xl border border-white/10 rounded-2xl mt-2 md:mt-3 z-[2000] shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-slideDown">
             {searchResults.map((item) => {
               if (!item.poster_path && !item.profile_path) return null;
               const title = item.title || item.name;
