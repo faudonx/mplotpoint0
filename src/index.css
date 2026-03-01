@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-base: #050a10;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a0b0c0;
+  --color-accent: #ff4500;
+  --color-glass-bg: rgba(20, 30, 45, 0.4);
+  --color-glass-border: rgba(255, 255, 255, 0.1);
+  --color-modal-bg: rgba(10, 15, 25, 0.95);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar for horizontal lists */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Carousel Styles */
+.hero-carousel {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+.carousel-item {
+  transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+  border: 2px solid transparent;
+}
+.carousel-item:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.carousel-item.active {
+  transform: translateX(0) scale(1.15) translateZ(60px);
+  z-index: 3;
+  border: 2px solid var(--color-accent);
+  box-shadow: 0 30px 60px rgba(255, 69, 0, 0.3);
+}
+.carousel-item.prev {
+  transform: translateX(-180px) scale(0.92) rotateY(12deg) translateZ(0);
+  z-index: 2;
+  opacity: 0.7;
+  filter: blur(1px);
+}
+.carousel-item.next {
+  transform: translateX(180px) scale(0.92) rotateY(-12deg) translateZ(0);
+  z-index: 2;
+  opacity: 0.7;
+  filter: blur(1px);
+}
+
+/* Animations */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slideDown {
+  animation: slideDown 0.2s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease forwards;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.animate-scaleIn {
+  animation: scaleIn 0.3s ease forwards;
+}
+
+/* Search Bar Focus */
+.search-bar-focus-within:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(255, 69, 0, 0.2), 0 4px 20px rgba(0,0,0,0.3);
+  background: rgba(30, 45, 70, 0.8);
+}
+
+/* Movie Card Hover */
+.movie-card-hover:hover {
+  transform: translateY(-10px) scale(1.03);
+  box-shadow: 0 20px 45px rgba(0,0,0,0.6);
+  border-color: var(--color-accent);
+}
+.movie-card-hover::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 1;
+}
+.movie-card-hover:hover::before {
+  opacity: 1;
+}
+.movie-card-hover:hover img {
+  transform: scale(1.05);
+}
+
+/* Floating Input Label */
+.floating-input:focus + label,
+.floating-input:not(:placeholder-shown) + label {
+  top: -0.65rem;
+  left: 1rem;
+  font-size: 0.75rem;
+  background: var(--color-modal-bg);
+  color: var(--color-accent);
+  font-weight: 600;
+}

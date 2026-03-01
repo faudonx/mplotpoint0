@@ -1,0 +1,184 @@
+import { useState, useEffect } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './lib/firebase';
+import { tmdb } from './lib/tmdb';
+
+import { Header } from './components/Header';
+import { Hero } from './components/Hero';
+import { MediaRow } from './components/MediaRow';
+import { AuthModal } from './components/AuthModal';
+import { DetailModal } from './components/DetailModal';
+import { PlayerModal } from './components/PlayerModal';
+import { ConfirmModal } from './components/ConfirmModal';
+import { RestrictedModal } from './components/RestrictedModal';
+import { WatchlistModal } from './components/WatchlistModal';
+
+import { Film, Tv, PlaySquare, Heart } from 'lucide-react';
+
+export default function App() {
+  const [user, setUser] = useState<any>(null);
+  
+  // Modals state
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isRestrictedOpen, setIsRestrictedOpen] = useState(false);
+  const [isWatchlistOpen, setIsWatchlistOpen] = useState(false);
+
+  // Active item state
+  const [activeMovieId, setActiveMovieId] = useState<number | null>(null);
+  const [activeMediaType, setActiveMediaType] = useState<'movie' | 'tv'>('movie');
+  const [activeItem, setActiveItem] = useState<any>(null);
+
+  // Confirm modal state
+  const [confirmProps, setConfirmProps] = useState({
+    title: '',
+    message: '',
+    type: 'warning',
+    onConfirm: () => {}
+  });
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleOpenDetail = (id: number, mediaType: 'movie' | 'tv') => {
+    setActiveMovieId(id);
+    setActiveMediaType(mediaType);
+    setIsDetailOpen(true);
+  };
+
+  const handleWatchNow = (item: any, mediaType: 'movie' | 'tv') => {
+    setActiveItem(item);
+    setActiveMediaType(mediaType);
+    setIsPlayerOpen(true);
+  };
+
+  const handleShowConfirm = (title: string, message: string, type: string, onConfirm: () => void) => {
+    setConfirmProps({ title, message, type, onConfirm });
+    setIsConfirmOpen(true);
+  };
+
+  return (
+    <div className="min-h-screen bg-bg-base text-text-primary font-sans">
+      <Header 
+        user={user} 
+        onOpenAuth={() => setIsAuthOpen(true)}
+        onOpenWatchlist={() => setIsWatchlistOpen(true)}
+        onShowRestricted={() => setIsRestrictedOpen(true)}
+        onOpenDetail={handleOpenDetail}
+      />
+
+      <main>
+        <Hero 
+          user={user}
+          onOpenDetail={handleOpenDetail}
+          onShowRestricted={() => setIsRestrictedOpen(true)}
+        />
+
+        <div id="movies">
+          <MediaRow 
+            title="Popular Movies" 
+            icon={Film} 
+            fetchFn={tmdb.getPopularMovies} 
+            mediaType="movie"
+            user={user}
+            onOpenDetail={handleOpenDetail}
+            onShowRestricted={() => setIsRestrictedOpen(true)}
+          />
+        </div>
+
+        <div id="tv">
+          <MediaRow 
+            title="Popular TV Shows" 
+            icon={Tv} 
+            fetchFn={tmdb.getPopularTV} 
+            mediaType="tv"
+            user={user}
+            onOpenDetail={handleOpenDetail}
+            onShowRestricted={() => setIsRestrictedOpen(true)}
+          />
+        </div>
+
+        <div id="anime">
+          <MediaRow 
+            title="Popular Anime" 
+            icon={PlaySquare} 
+            fetchFn={tmdb.getAnime} 
+            mediaType="tv"
+            user={user}
+            onOpenDetail={handleOpenDetail}
+            onShowRestricted={() => setIsRestrictedOpen(true)}
+          />
+        </div>
+
+        <div id="kdrama">
+          <MediaRow 
+            title="Popular K-Drama" 
+            icon={Heart} 
+            fetchFn={tmdb.getKDrama} 
+            mediaType="tv"
+            user={user}
+            onOpenDetail={handleOpenDetail}
+            onShowRestricted={() => setIsRestrictedOpen(true)}
+          />
+        </div>
+      </main>
+
+      <AuthModal 
+        isOpen={isAuthOpen} 
+        onClose={() => setIsAuthOpen(false)} 
+      />
+
+      <DetailModal 
+        isOpen={isDetailOpen} 
+        onClose={() => setIsDetailOpen(false)}
+        movieId={activeMovieId}
+        mediaType={activeMediaType}
+        onWatchNow={handleWatchNow}
+        onShowConfirm={handleShowConfirm}
+      />
+
+      <PlayerModal 
+        isOpen={isPlayerOpen}
+        onClose={() => setIsPlayerOpen(false)}
+        item={activeItem}
+        mediaType={activeMediaType}
+        onOpenDetail={handleOpenDetail}
+        onShowRestricted={() => setIsRestrictedOpen(true)}
+      />
+
+      <ConfirmModal 
+        isOpen={isConfirmOpen}
+        title={confirmProps.title}
+        message={confirmProps.message}
+        type={confirmProps.type}
+        onConfirm={() => {
+          confirmProps.onConfirm();
+          setIsConfirmOpen(false);
+        }}
+        onCancel={() => setIsConfirmOpen(false)}
+      />
+
+      <RestrictedModal 
+        isOpen={isRestrictedOpen}
+        onClose={() => setIsRestrictedOpen(false)}
+        onLogin={() => {
+          setIsRestrictedOpen(false);
+          setIsAuthOpen(true);
+        }}
+      />
+
+      <WatchlistModal 
+        isOpen={isWatchlistOpen}
+        onClose={() => setIsWatchlistOpen(false)}
+        onOpenDetail={handleOpenDetail}
+        onShowConfirm={handleShowConfirm}
+      />
+    </div>
+  );
+}

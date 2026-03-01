@@ -1,0 +1,5 @@
+{
+  "name": "MPlotPoint Cinematic Experience",
+  "description": "A cinematic movie and TV show streaming web application with user authentication, watchlists, and comments.",
+  "requestFramePermissions": []
+}
