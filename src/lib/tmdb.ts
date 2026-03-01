@@ -28,7 +28,7 @@ export const tmdb = {
   getPopularTV: () => fetchWithRetry('https://api.themoviedb.org/3/tv/popular?language=en-US&page=1'),
   getAnime: () => fetchWithRetry('https://api.themoviedb.org/3/discover/tv?with_genres=16&with_original_language=ja&sort_by=popularity.desc&language=en-US&page=1'),
   getKDrama: () => fetchWithRetry('https://api.themoviedb.org/3/discover/tv?with_genres=18&with_original_language=ko&sort_by=popularity.desc&language=en-US&page=1'),
-  getDetails: (id: number, mediaType: string) => fetchWithRetry(`https://api.themoviedb.org/3/${mediaType}/${id}?append_to_response=videos,similar&language=en-US`),
+  getDetails: (id: number, mediaType: string) => fetchWithRetry(`https://api.themoviedb.org/3/${mediaType}/${id}?append_to_response=videos,similar,${mediaType === 'movie' ? 'release_dates' : 'content_ratings'}&language=en-US`),
   getTVSeasons: (id: number) => fetchWithRetry(`https://api.themoviedb.org/3/tv/${id}?language=en-US`),
   getTVEpisodes: (id: number, season: number) => fetchWithRetry(`https://api.themoviedb.org/3/tv/${id}/season/${season}?language=en-US`),
   getSimilar: (id: number, mediaType: string) => fetchWithRetry(`https://api.themoviedb.org/3/${mediaType}/${id}/similar?language=en-US&page=1`),
