@@ -150,6 +150,8 @@ export default function App() {
         mediaType={activeMediaType}
         onOpenDetail={handleOpenDetail}
         onShowRestricted={() => setIsRestrictedOpen(true)}
+        onOpenAuth={() => setIsAuthOpen(true)}
+        onOpenWatchlist={() => setIsWatchlistOpen(true)}
       />
 
       <ConfirmModal 

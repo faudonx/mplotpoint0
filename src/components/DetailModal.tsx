@@ -97,15 +97,15 @@ export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, o
         {loading ? (
           <div className="text-center p-8">Loading...</div>
         ) : item ? (
-          <div className="flex gap-8 flex-wrap">
-            <div className="flex-[0_0_260px] max-w-[260px] mx-auto md:mx-0 rounded-2xl overflow-hidden shadow-[0_20px_30px_black]">
+          <div className="flex gap-6 md:gap-8 flex-col md:flex-row">
+            <div className="w-[140px] md:w-[260px] md:flex-[0_0_260px] mx-auto md:mx-0 rounded-2xl overflow-hidden shadow-[0_20px_30px_black] shrink-0">
               <img src={`https://image.tmdb.org/t/p/w500${item.poster_path}`} alt={item.title || item.name} className="w-full h-auto block" />
             </div>
             
-            <div className="flex-1 min-w-[280px]">
-              <h2 className="text-[2.5rem] font-bold mb-2">{item.title || item.name}</h2>
+            <div className="flex-1 min-w-0 text-center md:text-left">
+              <h2 className="text-3xl md:text-[2.5rem] font-bold mb-2">{item.title || item.name}</h2>
               
-              <div className="flex gap-6 text-text-secondary my-4 flex-wrap">
+              <div className="flex gap-4 md:gap-6 text-text-secondary my-4 flex-wrap justify-center md:justify-start">
                 <span className="flex items-center gap-2"><Calendar className="w-4 h-4" /> {item.release_date?.slice(0,4) || item.first_air_date?.slice(0,4)}</span>
                 {item.runtime && <span className="flex items-center gap-2"><Clock className="w-4 h-4" /> {item.runtime} min</span>}
                 <span className="flex items-center gap-2"><Star className="w-4 h-4" /> {item.vote_average?.toFixed(1) || '?'}</span>

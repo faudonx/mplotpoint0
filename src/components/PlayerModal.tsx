@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Search, Expand, ThumbsUp, ThumbsDown, Share2, Plus, List, PlayCircle, Loader2, Calendar, Star } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, Search, Expand, ThumbsUp, ThumbsDown, Share2, Plus, List, PlayCircle, Loader2, Calendar, Star, ChevronDown, ChevronUp, LogOut, Film, Tv } from 'lucide-react';
 import { tmdb } from '../lib/tmdb';
 import { auth, db } from '../lib/firebase';
+import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs, addDoc, updateDoc, increment, limit } from 'firebase/firestore';
 
-export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 1, initialEpisode = 1, onOpenDetail, onShowRestricted }: any) {
+export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 1, initialEpisode = 1, onOpenDetail, onShowRestricted, onOpenAuth, onOpenWatchlist }: any) {
   const [seasonNum, setSeasonNum] = useState(initialSeason);
   const [episodeNum, setEpisodeNum] = useState(initialEpisode);
   const [seasons, setSeasons] = useState<any[]>([]);
@@ -12,12 +13,65 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState('');
-  const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
+  const [isSidebarMinimized, setIsSidebarMinimized] = useState(() => window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsSidebarMinimized(false);
+      } else {
+        setIsSidebarMinimized(true);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [userLiked, setUserLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [inWatchlist, setInWatchlist] = useState(false);
   const [loadingEpisodes, setLoadingEpisodes] = useState(false);
   const [userData, setUserData] = useState<any>(null);
+  
+  // Search & User Menu State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchQuery.length >= 2) {
+        try {
+          const data = await tmdb.searchMulti(searchQuery);
+          if (data && data.results) {
+            setSearchResults(data.results.slice(0, 6));
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setSearchResults([]);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      signOut(auth);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen || !item) return;
@@ -184,24 +238,130 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   };
 
   const userInitial = userData?.nickname?.charAt(0).toUpperCase() || auth.currentUser?.email?.charAt(0).toUpperCase() || 'U';
+  const nickname = userData?.nickname || auth.currentUser?.email?.split('@')[0] || 'User';
 
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[200] animate-fadeIn">
       <div className="w-full h-full bg-modal-bg flex flex-col overflow-hidden">
         
         {/* Header */}
-        <div className="bg-[#050a10]/95 p-4 md:px-8 flex items-center gap-6 border-b border-white/10 shrink-0 backdrop-blur-md flex-wrap">
-          <button className="bg-transparent border-none text-white p-2 rounded-full cursor-pointer transition-colors hover:text-accent hover:bg-white/10 flex items-center justify-center" onClick={onClose}>
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          <div className="text-xl md:text-2xl font-bold tracking-tighter bg-gradient-to-br from-white to-accent bg-clip-text text-transparent">
-            MPlotPoint
+        <div className="bg-[#050a10]/95 p-3 md:p-4 md:px-8 flex items-center justify-between gap-4 border-b border-white/10 shrink-0 backdrop-blur-md flex-wrap">
+          <div className="flex items-center gap-3 md:gap-6 order-1">
+            <button className="bg-transparent border-none text-white p-1.5 md:p-2 rounded-full cursor-pointer transition-colors hover:text-accent hover:bg-white/10 flex items-center justify-center" onClick={onClose}>
+              <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
+            <div className="text-lg md:text-2xl font-bold tracking-tighter bg-gradient-to-br from-white to-accent bg-clip-text text-transparent">
+              MPlotPoint
+            </div>
           </div>
-          <div className="flex-1 max-w-[400px] mx-auto order-3 md:order-none w-full mt-2 md:mt-0">
+
+          <div className="order-2 md:order-3 ml-auto md:ml-0">
+            {auth.currentUser ? (
+              <div className="relative">
+                <div 
+                  className={`flex items-center gap-2 md:gap-3 bg-glass-bg px-3 md:px-4 py-1.5 rounded-full cursor-pointer border-2 transition-all duration-300 ${showDropdown ? 'border-accent bg-[#1e2d46]/60' : 'border-transparent hover:border-accent hover:bg-[#1e2d46]/60'}`}
+                  onClick={() => setShowDropdown(!showDropdown)}
+                >
+                  {userData?.photoURL ? (
+                    <img src={userData.photoURL} alt="Avatar" className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-accent object-cover" />
+                  ) : (
+                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-accent to-[#ff6b35] flex items-center justify-center font-bold text-xs md:text-sm text-white border-2 border-accent">
+                      {userInitial}
+                    </div>
+                  )}
+                  <span className="text-sm font-medium hidden md:block">{nickname}</span>
+                  <ChevronDown className={`w-4 h-4 text-text-secondary transition-transform duration-300 ${showDropdown ? 'rotate-180' : ''}`} />
+                </div>
+                
+                {showDropdown && (
+                  <div className="absolute top-[calc(100%+0.8rem)] right-0 w-[240px] md:w-[280px] max-w-[90vw] bg-modal-bg backdrop-blur-xl border border-white/10 rounded-2xl p-2 z-[150] shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-slideDown origin-top-right">
+                    <div className="p-3 md:p-4 border-b border-white/10 mb-2">
+                      <div className="font-semibold text-sm md:text-base mb-1 truncate">{nickname}</div>
+                      <div className="text-xs md:text-sm text-text-secondary truncate">{auth.currentUser.email}</div>
+                    </div>
+                    
+                    <button 
+                      className="w-full flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 text-text-primary hover:bg-accent/10 hover:border-l-4 hover:border-l-accent hover:pl-[calc(0.75rem-4px)]"
+                      onClick={() => {
+                        setShowDropdown(false);
+                        onClose();
+                        onOpenWatchlist();
+                      }}
+                    >
+                      <List className="w-4 h-4 md:w-5 md:h-5 text-accent" />
+                      <span className="text-sm md:text-base">My Watchlist</span>
+                    </button>
+                    
+                    <button 
+                      className="w-full flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 text-[#ff6b6b] hover:bg-[#ff6b6b]/10 hover:border-l-4 hover:border-l-[#ff6b6b] hover:pl-[calc(0.75rem-4px)] border-t border-white/10 mt-2"
+                      onClick={() => {
+                        setShowDropdown(false);
+                        handleLogout();
+                      }}
+                    >
+                      <LogOut className="w-4 h-4 md:w-5 md:h-5 text-[#ff6b6b]" />
+                      <span className="text-sm md:text-base">Logout</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button 
+                className="bg-white/10 backdrop-blur-md border border-white/10 text-white px-4 md:px-6 py-1.5 md:py-2 rounded-full font-semibold text-xs md:text-sm cursor-pointer transition-all duration-300 hover:bg-white/20 hover:-translate-y-0.5 hover:border-accent"
+                onClick={() => { onClose(); onOpenAuth(); }}
+              >
+                Login
+              </button>
+            )}
+          </div>
+
+          <div className="relative flex-1 max-w-[400px] mx-auto order-3 md:order-2 w-full" ref={searchRef}>
             <div className="bg-[#1e2d46]/60 border border-white/10 rounded-full px-4 py-2 flex items-center gap-2 transition-all duration-300 shadow-[0_4px_15px_rgba(0,0,0,0.2)] focus-within:border-accent focus-within:shadow-[0_0_0_3px_rgba(255,69,0,0.2),0_4px_20px_rgba(0,0,0,0.3)] focus-within:bg-[#1e2d46]/80">
               <Search className="text-text-secondary w-4 h-4" />
-              <input type="text" placeholder="Search movies & TV..." className="bg-transparent border-none text-white outline-none w-full text-sm placeholder:text-text-secondary/70" />
+              <input 
+                type="text" 
+                placeholder="Search movies & TV..." 
+                className="bg-transparent border-none text-white outline-none w-full text-sm placeholder:text-text-secondary/70" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
+            {searchResults.length > 0 && (
+              <div className="absolute top-full right-0 w-full md:w-[380px] max-h-[400px] md:max-h-[450px] overflow-y-auto bg-modal-bg backdrop-blur-xl border border-white/10 rounded-2xl mt-2 md:mt-3 z-[150] shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-slideDown">
+                {searchResults.map((searchItem) => {
+                  if (!searchItem.poster_path && !searchItem.profile_path) return null;
+                  const searchTitle = searchItem.title || searchItem.name;
+                  const date = searchItem.release_date || searchItem.first_air_date;
+                  const year = date ? date.slice(0,4) : '';
+                  const searchMediaType = searchItem.media_type === 'movie' ? 'movie' : (searchItem.media_type === 'tv' ? 'tv' : null);
+                  if (!searchMediaType) return null;
+                  const poster = searchItem.poster_path ? `https://image.tmdb.org/t/p/w92${searchItem.poster_path}` : 'https://via.placeholder.com/92x138?text=No+Image';
+                  
+                  return (
+                    <div 
+                      key={searchItem.id} 
+                      className="flex items-center gap-3 md:gap-4 p-2.5 md:p-3.5 cursor-pointer border-b border-white/5 transition-colors hover:bg-accent/10 hover:border-l-4 hover:border-l-accent hover:pl-[calc(0.625rem-4px)] md:hover:pl-2.5"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSearchResults([]);
+                        onClose();
+                        if (!auth.currentUser) onShowRestricted();
+                        else onOpenDetail(searchItem.id, searchMediaType);
+                      }}
+                    >
+                      <img src={poster} alt={searchTitle} className="w-10 h-[60px] md:w-12 md:h-[75px] object-cover rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.3)]" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm mb-0.5 md:mb-1 truncate">{searchTitle}</div>
+                        <div className="text-xs text-text-secondary flex items-center gap-1.5">
+                          {searchMediaType === 'movie' ? <Film className="w-3 h-3" /> : <Tv className="w-3 h-3" />}
+                          {searchMediaType === 'movie' ? 'Movie' : 'TV'} {year ? `• ${year}` : ''}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -378,12 +538,22 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
           </div>
 
           {/* Sidebar */}
-          <div className={`w-full lg:w-[400px] bg-[#0a0f19]/95 border-t lg:border-t-0 lg:border-l border-white/10 overflow-y-auto p-6 transition-all duration-300 relative ${isSidebarMinimized ? 'lg:w-auto lg:h-auto lg:p-0 lg:overflow-visible' : ''}`}>
-            <div className="text-lg font-semibold mb-4 flex items-center justify-between gap-2">
+          <div className={`w-full lg:w-[400px] bg-[#0a0f19]/95 border-t lg:border-t-0 lg:border-l border-white/10 flex flex-col transition-all duration-300 ${isSidebarMinimized ? 'h-[60px] lg:h-auto lg:p-0' : 'h-[400px] lg:h-auto'}`}>
+            <div 
+              className="p-4 lg:p-6 text-lg font-semibold flex items-center justify-between gap-2 cursor-pointer lg:cursor-default bg-glass-bg lg:bg-transparent shrink-0"
+              onClick={() => {
+                if (window.innerWidth < 1024) {
+                  setIsSidebarMinimized(!isSidebarMinimized);
+                }
+              }}
+            >
               <div className="flex items-center gap-2"><PlayCircle className="w-5 h-5 text-accent" /> Up Next</div>
+              <div className="lg:hidden text-accent">
+                {isSidebarMinimized ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+              </div>
             </div>
             
-            <div className={`transition-all duration-300 ${isSidebarMinimized ? 'hidden' : 'block'}`}>
+            <div className={`flex-1 overflow-y-auto p-4 lg:p-6 pt-0 lg:pt-0 transition-all duration-300 ${isSidebarMinimized ? 'hidden lg:block' : 'block'}`}>
               {recommendations.map(rec => {
                 const recTitle = rec.title || rec.name;
                 const backdrop = rec.backdrop_path ? `https://image.tmdb.org/t/p/w500${rec.backdrop_path}` : `https://image.tmdb.org/t/p/w500${rec.poster_path}`;
