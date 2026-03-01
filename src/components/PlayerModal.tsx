@@ -31,6 +31,95 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const [inWatchlist, setInWatchlist] = useState(false);
   const [loadingEpisodes, setLoadingEpisodes] = useState(false);
   const [userData, setUserData] = useState<any>(null);
+  const [watchProgress, setWatchProgress] = useState<Record<string, any>>({});
+  const [currentTime, setCurrentTime] = useState(0);
+
+  // Load watch progress
+  const loadWatchProgress = async () => {
+    if (!auth.currentUser || !item) return;
+    try {
+      const q = query(
+        collection(db, 'watchProgress'),
+        where('userId', '==', auth.currentUser.uid),
+        where('movieId', '==', item.id)
+      );
+      const snap = await getDocs(q);
+      const progress: Record<string, any> = {};
+      snap.forEach(doc => {
+        const data = doc.data();
+        const key = data.mediaType === 'movie' ? 'movie' : `s${data.season}e${data.episode}`;
+        progress[key] = data;
+      });
+      setWatchProgress(progress);
+      
+      // Set initial time for current item
+      const currentKey = mediaType === 'movie' ? 'movie' : `s${seasonNum}e${episodeNum}`;
+      if (progress[currentKey]) {
+        setCurrentTime(progress[currentKey].timestamp || 0);
+      } else {
+        setCurrentTime(0);
+      }
+    } catch (e) {
+      console.error('Error loading watch progress:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen || !item) return;
+    loadWatchProgress();
+  }, [isOpen, item, seasonNum, episodeNum]);
+
+  // Track time spent (Simulated since we can't access iframe internals)
+  useEffect(() => {
+    if (!isOpen || !item) return;
+    
+    const interval = setInterval(() => {
+      setCurrentTime(prev => prev + 1);
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+      saveCurrentProgress();
+    };
+  }, [isOpen, item, seasonNum, episodeNum]);
+
+  // Periodic save
+  useEffect(() => {
+    if (currentTime > 0 && currentTime % 15 === 0) {
+      saveCurrentProgress();
+    }
+  }, [currentTime]);
+
+  const saveCurrentProgress = async () => {
+    if (!auth.currentUser || !item || currentTime < 5) return;
+    
+    const uid = auth.currentUser.uid;
+    const progressKey = mediaType === 'movie' ? `${uid}_movie_${item.id}` : `${uid}_tv_${item.id}_s${seasonNum}_e${episodeNum}`;
+    const progressRef = doc(db, 'watchProgress', progressKey);
+    
+    try {
+      await setDoc(progressRef, {
+        userId: uid,
+        movieId: item.id,
+        mediaType,
+        season: mediaType === 'tv' ? seasonNum : null,
+        episode: mediaType === 'tv' ? episodeNum : null,
+        timestamp: currentTime,
+        lastUpdated: new Date(),
+        // We estimate duration or use a fixed one if not available
+        duration: mediaType === 'movie' ? (item.runtime * 60 || 7200) : 2400 
+      }, { merge: true });
+      
+      // Update local state to reflect progress immediately
+      const key = mediaType === 'movie' ? 'movie' : `s${seasonNum}e${episodeNum}`;
+      setWatchProgress(prev => ({
+        ...prev,
+        [key]: { timestamp: currentTime, duration: mediaType === 'movie' ? (item.runtime * 60 || 7200) : 2400 }
+      }));
+    } catch (e) {
+      console.error('Error saving progress:', e);
+    }
+  };
   
   useEffect(() => {
     if (!isOpen || !item) return;
@@ -115,6 +204,9 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const embedUrl = mediaType === 'movie' 
     ? `https://vidsrc.icu/embed/movie/${item.id}`
     : `https://vidsrc.icu/embed/tv/${item.id}/${seasonNum}/${episodeNum}`;
+
+  // Add time parameter if supported (vidsrc sometimes supports it via #t= or &t=)
+  const finalEmbedUrl = currentTime > 10 ? `${embedUrl}${embedUrl.includes('?') ? '&' : '?'}t=${currentTime}` : embedUrl;
 
   const handleLike = async () => {
     if (!auth.currentUser) return onShowRestricted();
@@ -220,16 +312,24 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
             
             {/* Video Player */}
             <div className="w-full relative pb-[56.25%] bg-black shrink-0 group">
-              <iframe src={embedUrl} allowFullScreen className="absolute top-0 left-0 w-full h-full border-none"></iframe>
-              <button 
-                className="absolute bottom-4 right-4 bg-black/70 border-none text-white px-4 py-2 rounded-lg cursor-pointer text-sm flex items-center gap-2 z-10 transition-colors hover:bg-black/90 hidden md:flex opacity-0 group-hover:opacity-100"
-                onClick={() => {
-                  const iframe = document.querySelector('iframe');
-                  if (iframe?.requestFullscreen) iframe.requestFullscreen();
-                }}
-              >
-                <Expand className="w-4 h-4" /> Fullscreen
-              </button>
+              <iframe src={finalEmbedUrl} allowFullScreen className="absolute top-0 left-0 w-full h-full border-none"></iframe>
+              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
+                {currentTime > 0 && (
+                  <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-[0.7rem] font-medium text-white flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                    Resumed from {Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')}
+                  </div>
+                )}
+                <button 
+                  className="bg-black/70 border-none text-white px-4 py-2 rounded-lg cursor-pointer text-sm flex items-center gap-2 transition-colors hover:bg-black/90 hidden md:flex opacity-0 group-hover:opacity-100 pointer-events-auto"
+                  onClick={() => {
+                    const iframe = document.querySelector('iframe');
+                    if (iframe?.requestFullscreen) iframe.requestFullscreen();
+                  }}
+                >
+                  <Expand className="w-4 h-4" /> Fullscreen
+                </button>
+              </div>
             </div>
 
             {/* Info Section */}
@@ -296,33 +396,53 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
                   ) : episodes.length === 0 ? (
                     <div className="text-center p-12 text-text-secondary"><p>No episodes available</p></div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
+                    <div className="flex flex-col md:grid md:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3 md:gap-4">
                       {episodes.map((ep: any) => {
                         const isActive = ep.episode_number === episodeNum;
+                        const progressData = watchProgress[`s${seasonNum}e${ep.episode_number}`];
+                        const progressPercent = progressData ? Math.min(100, (progressData.timestamp / (progressData.duration || 2400)) * 100) : 0;
+                        const isWatched = progressPercent > 95;
+
                         return (
                           <div 
                             key={ep.id}
-                            className={`bg-glass-bg border rounded-xl overflow-hidden cursor-pointer transition-all duration-300 relative hover:-translate-y-1 hover:border-accent hover:shadow-[0_10px_30px_rgba(255,69,0,0.2)] flex flex-row md:flex-col ${isActive ? 'border-accent bg-accent/10' : 'border-white/10'}`}
+                            className={`bg-glass-bg border rounded-xl overflow-hidden cursor-pointer transition-all duration-300 relative hover:border-accent hover:shadow-[0_10px_30px_rgba(255,69,0,0.1)] flex flex-row md:flex-col h-[85px] md:h-auto ${isActive ? 'border-accent bg-accent/10' : 'border-white/10'} ${isWatched ? 'opacity-60' : ''}`}
                             onClick={() => {
                               setEpisodeNum(ep.episode_number);
                               document.querySelector('.player-main')?.scrollTo({ top: 0, behavior: 'smooth' });
                             }}
                           >
-                            <div className="w-[120px] md:w-full h-[80px] md:h-[160px] relative shrink-0">
+                            <div className="w-[110px] md:w-full h-full md:h-[160px] relative shrink-0">
                               <img src={ep.still_path ? `https://image.tmdb.org/t/p/w500${ep.still_path}` : 'https://via.placeholder.com/400x225?text=No+Image'} alt={ep.name} className="w-full h-full object-cover block" />
+                              
+                              {/* Progress Bar */}
+                              {progressPercent > 0 && (
+                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+                                  <div className="h-full bg-accent transition-all duration-300" style={{ width: `${progressPercent}%` }} />
+                                </div>
+                              )}
+
                               {isActive && (
-                                <div className="absolute inset-0 bg-accent/30 flex items-center justify-center md:hidden">
+                                <div className="absolute inset-0 bg-accent/30 flex items-center justify-center">
                                   <PlayCircle className="w-6 h-6 text-white animate-pulse" />
                                 </div>
                               )}
+
+                              {isWatched && !isActive && (
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                  <div className="bg-black/60 backdrop-blur-md px-2 py-1 rounded text-[0.6rem] font-bold text-white border border-white/10 uppercase">
+                                    Watched
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <div className="p-3 md:p-4 flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-1">
-                                <div className="text-text-secondary text-[0.7rem] md:text-sm font-semibold uppercase tracking-wider">Episode {ep.episode_number}</div>
+                            <div className="p-2 md:p-4 flex-1 min-w-0 flex flex-col justify-center md:justify-start">
+                              <div className="flex items-center justify-between mb-0.5 md:mb-1">
+                                <div className="text-text-secondary text-[0.6rem] md:text-sm font-semibold uppercase tracking-wider">E{ep.episode_number} {ep.runtime ? `• ${ep.runtime}m` : ''}</div>
                                 {isActive && <div className="hidden md:block bg-accent text-white px-2 py-0.5 rounded text-[0.6rem] font-bold">NOW PLAYING</div>}
                               </div>
-                              <div className="text-sm md:text-base font-semibold mb-1 md:mb-2 line-clamp-1 md:line-clamp-2 text-text-primary">{ep.name || `Episode ${ep.episode_number}`}</div>
-                              <div className="text-[0.75rem] md:text-sm text-text-secondary leading-[1.4] line-clamp-2">{ep.overview || 'No description available.'}</div>
+                              <div className="text-[0.8rem] md:text-base font-semibold mb-0.5 md:mb-2 line-clamp-1 md:line-clamp-2 text-text-primary">{ep.name || `Episode ${ep.episode_number}`}</div>
+                              <div className="text-[0.65rem] md:text-sm text-text-secondary leading-tight line-clamp-1 md:line-clamp-2">{ep.overview || 'No description available.'}</div>
                             </div>
                           </div>
                         );
