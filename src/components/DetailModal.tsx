@@ -78,8 +78,8 @@ export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, o
   const trailer = item?.videos?.results?.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube');
 
   return (
-    <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-[200] animate-fadeIn" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="w-full h-full md:w-[90%] md:h-auto md:max-h-[90vh] md:max-w-[600px] bg-bg-base md:rounded-2xl border-none md:border md:border-white/10 relative overflow-y-auto animate-scaleIn scrollbar-hide p-5 md:p-8">
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-start md:items-center justify-center z-[4000] animate-fadeIn overflow-y-auto pt-20 pb-10 px-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="w-full h-auto md:max-h-[90vh] md:max-w-[600px] bg-bg-base rounded-2xl border border-white/10 relative animate-scaleIn scrollbar-hide p-5 md:p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
         
         {/* Close Button */}
         <button 

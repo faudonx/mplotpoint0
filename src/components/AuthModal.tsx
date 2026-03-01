@@ -131,8 +131,8 @@ export function AuthModal({ isOpen, onClose }: any) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[200] animate-fadeIn" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="w-[90%] max-w-[450px] bg-modal-bg rounded-2xl p-8 border border-white/10 relative max-h-[90vh] overflow-y-auto animate-scaleIn">
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-start md:items-center justify-center z-[4000] animate-fadeIn overflow-y-auto pt-20 pb-10 px-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="w-full max-w-[450px] bg-modal-bg rounded-2xl p-8 border border-white/10 relative h-auto animate-scaleIn shadow-[0_0_50px_rgba(0,0,0,0.5)]">
         <button className="absolute top-4 right-6 text-white hover:text-accent transition-colors" onClick={onClose}>
           <X className="w-6 h-6" />
         </button>
