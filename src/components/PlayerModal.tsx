@@ -33,6 +33,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const [userData, setUserData] = useState<any>(null);
   const [watchProgress, setWatchProgress] = useState<Record<string, any>>({});
   const [currentTime, setCurrentTime] = useState(0);
+  const [initialSeekTime, setInitialSeekTime] = useState(0);
 
   // Load watch progress
   const loadWatchProgress = async () => {
@@ -54,11 +55,9 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
       
       // Set initial time for current item
       const currentKey = mediaType === 'movie' ? 'movie' : `s${seasonNum}e${episodeNum}`;
-      if (progress[currentKey]) {
-        setCurrentTime(progress[currentKey].timestamp || 0);
-      } else {
-        setCurrentTime(0);
-      }
+      const savedTime = progress[currentKey]?.timestamp || 0;
+      setInitialSeekTime(savedTime);
+      setCurrentTime(savedTime);
     } catch (e) {
       console.error('Error loading watch progress:', e);
     }
@@ -205,8 +204,8 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
     ? `https://vidsrc.icu/embed/movie/${item.id}`
     : `https://vidsrc.icu/embed/tv/${item.id}/${seasonNum}/${episodeNum}`;
 
-  // Add time parameter if supported (vidsrc sometimes supports it via #t= or &t=)
-  const finalEmbedUrl = currentTime > 10 ? `${embedUrl}${embedUrl.includes('?') ? '&' : '?'}t=${currentTime}` : embedUrl;
+  // Use initialSeekTime for the iframe URL to prevent reloads when currentTime updates
+  const finalEmbedUrl = initialSeekTime > 10 ? `${embedUrl}${embedUrl.includes('?') ? '&' : '?'}t=${initialSeekTime}` : embedUrl;
 
   const handleLike = async () => {
     if (!auth.currentUser) return onShowRestricted();
