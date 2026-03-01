@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, ChevronDown, List, LogOut, Film, Tv, Menu, X as CloseIcon } from 'lucide-react';
+import { Search, ChevronDown, List, LogOut, Film, Tv, Menu, X as CloseIcon, ExternalLink } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { tmdb } from '../lib/tmdb';
+import { jikan } from '../lib/jikan';
 
 export function Header({ user, onOpenAuth, onOpenWatchlist, onShowRestricted, onOpenDetail, onGoHome }: any) {
   const [scrolled, setScrolled] = useState(false);
@@ -44,17 +45,40 @@ export function Header({ user, onOpenAuth, onOpenWatchlist, onShowRestricted, on
     const delayDebounceFn = setTimeout(async () => {
       if (searchQuery.length >= 2) {
         try {
-          const data = await tmdb.searchMulti(searchQuery);
-          if (data && data.results) {
-            setSearchResults(data.results.slice(0, 6));
+          const [tmdbData, jikanData] = await Promise.allSettled([
+            tmdb.searchMulti(searchQuery),
+            jikan.searchAnime(searchQuery)
+          ]);
+
+          let combinedResults: any[] = [];
+
+          if (tmdbData.status === 'fulfilled' && tmdbData.value?.results) {
+            combinedResults = tmdbData.value.results.slice(0, 5).map((item: any) => ({
+              ...item,
+              source: 'tmdb'
+            }));
           }
+
+          if (jikanData.status === 'fulfilled' && jikanData.value) {
+            const jikanMapped = jikanData.value.slice(0, 3).map((item: any) => ({
+              id: item.mal_id,
+              title: item.title,
+              poster_path: item.images?.jpg?.image_url,
+              media_type: 'tv', // Anime is usually TV
+              first_air_date: item.aired?.from,
+              source: 'jikan'
+            }));
+            combinedResults = [...combinedResults, ...jikanMapped];
+          }
+
+          setSearchResults(combinedResults);
         } catch (e) {
           console.error(e);
         }
       } else {
         setSearchResults([]);
       }
-    }, 300);
+    }, 400);
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
@@ -157,17 +181,21 @@ export function Header({ user, onOpenAuth, onOpenWatchlist, onShowRestricted, on
               />
               <div className="absolute top-full right-0 w-full md:w-[380px] max-h-[400px] md:max-h-[450px] overflow-y-auto bg-modal-bg backdrop-blur-xl border border-white/10 rounded-2xl mt-2 md:mt-3 z-[2500] shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-slideDown pointer-events-auto">
                 {searchResults.map((item) => {
-                if (!item.poster_path && !item.profile_path) return null;
+                const isJikan = item.source === 'jikan';
+                if (!isJikan && !item.poster_path && !item.profile_path) return null;
+                
                 const title = item.title || item.name;
                 const date = item.release_date || item.first_air_date;
                 const year = date ? date.slice(0,4) : '';
-                const mediaType = item.media_type === 'movie' ? 'movie' : (item.media_type === 'tv' ? 'tv' : null);
-                if (!mediaType) return null;
-                const poster = item.poster_path ? `https://image.tmdb.org/t/p/w92${item.poster_path}` : 'https://via.placeholder.com/92x138?text=No+Image';
+                const mediaType = item.media_type === 'movie' ? 'movie' : (item.media_type === 'tv' ? 'tv' : 'tv');
+                
+                const poster = isJikan 
+                  ? item.poster_path 
+                  : (item.poster_path ? `https://image.tmdb.org/t/p/w92${item.poster_path}` : 'https://via.placeholder.com/92x138?text=No+Image');
                 
                 return (
                   <button 
-                    key={item.id} 
+                    key={`${item.source}-${item.id}`} 
                     className="w-full flex items-center gap-3 md:gap-4 p-2.5 md:p-3.5 cursor-pointer border-b border-white/5 transition-colors hover:bg-accent/10 hover:border-l-4 hover:border-l-accent hover:pl-[calc(0.625rem-4px)] md:hover:pl-2.5 text-left bg-transparent border-none appearance-none"
                     onClick={() => {
                       setSearchQuery('');
@@ -179,7 +207,10 @@ export function Header({ user, onOpenAuth, onOpenWatchlist, onShowRestricted, on
                   >
                     <img src={poster} alt={title} className="w-10 h-[60px] md:w-12 md:h-[75px] object-cover rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.3)]" />
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm mb-0.5 md:mb-1 truncate text-text-primary">{title}</div>
+                      <div className="font-semibold text-sm mb-0.5 md:mb-1 truncate text-text-primary flex items-center gap-2">
+                        {title}
+                        {isJikan && <span className="text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter">MAL</span>}
+                      </div>
                       <div className="text-xs text-text-secondary flex items-center gap-1.5">
                         {mediaType === 'movie' ? <Film className="w-3 h-3" /> : <Tv className="w-3 h-3" />}
                         {mediaType === 'movie' ? 'Movie' : 'TV'} {year ? `• ${year}` : ''}

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { X, Star, Heart, Plus, Play, Check } from 'lucide-react';
+import { X, Star, Heart, Plus, Play, Check, ExternalLink } from 'lucide-react';
 import { tmdb } from '../lib/tmdb';
+import { jikan } from '../lib/jikan';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 
 export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, onShowConfirm }: any) {
   const [item, setItem] = useState<any>(null);
+  const [jikanData, setJikanData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [userLiked, setUserLiked] = useState(false);
   const [inWatchlist, setInWatchlist] = useState(false);
@@ -15,9 +17,30 @@ export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, o
 
     const loadDetails = async () => {
       setLoading(true);
+      setJikanData(null);
       try {
-        const data = await tmdb.getDetails(movieId, mediaType);
-        setItem(data);
+        let data = null;
+        try {
+          data = await tmdb.getDetails(movieId, mediaType);
+          setItem(data);
+        } catch (tmdbErr) {
+          console.warn('TMDB fetch failed, trying Jikan fallback...', tmdbErr);
+        }
+
+        // If it's anime (genre 16) or TMDB failed, try Jikan
+        const isAnime = data?.genres?.some((g: any) => g.id === 16) || mediaType === 'tv'; // Assuming TV might be anime
+        
+        if (!data || isAnime) {
+          const title = data?.title || data?.name;
+          if (title) {
+            try {
+              const jData = await jikan.getAnimeByTitle(title);
+              if (jData) setJikanData(jData);
+            } catch (jikanErr) {
+              console.error('Jikan fetch failed:', jikanErr);
+            }
+          }
+        }
 
         if (auth.currentUser) {
           const uid = auth.currentUser.uid;
@@ -75,7 +98,16 @@ export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, o
     }
   };
 
-  const trailer = item?.videos?.results?.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube');
+  const trailer = item?.videos?.results?.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube') || 
+                  (jikanData?.trailer?.youtube_id ? { key: jikanData.trailer.youtube_id } : null);
+
+  const displayTitle = item?.title || item?.name || jikanData?.title || 'Unknown Title';
+  const displayYear = (item?.release_date || item?.first_air_date || jikanData?.aired?.from)?.slice(0,4);
+  const displayOverview = item?.overview || jikanData?.synopsis || 'The plot remains a mystery. Dive in to discover the story.';
+  const displayPoster = item?.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : jikanData?.images?.jpg?.large_image_url;
+  const displayRating = item?.vote_average || jikanData?.score;
+  const displayStatus = item?.status || jikanData?.status;
+  const displayGenres = item?.genres?.map((g: any) => g.name) || jikanData?.genres?.map((g: any) => g.name);
 
   return (
     <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-start md:items-center justify-center z-[2000] animate-fadeIn overflow-y-auto pt-20 pb-10 px-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -93,19 +125,23 @@ export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, o
           <div className="flex items-center justify-center min-h-[300px] text-text-secondary">
             <div className="animate-spin w-8 h-8 border-4 border-accent border-t-transparent rounded-full"></div>
           </div>
-        ) : item ? (
+        ) : (item || jikanData) ? (
           <div className="flex flex-col gap-6">
             
             {/* Top Section: Side-by-Side Thumbnail Layout */}
             <div className="flex gap-4 md:gap-6">
               {/* Left Column: Thumbnail */}
               <div className="w-[38%] shrink-0">
-                <div className="aspect-[2/3] rounded-lg overflow-hidden border border-white/10 shadow-xl">
-                  <img 
-                    src={`https://image.tmdb.org/t/p/w500${item.poster_path}`} 
-                    alt={item.title || item.name} 
-                    className="w-full h-full object-cover"
-                  />
+                <div className="aspect-[2/3] rounded-lg overflow-hidden border border-white/10 shadow-xl bg-modal-bg">
+                  {displayPoster ? (
+                    <img 
+                      src={displayPoster} 
+                      alt={displayTitle} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white/20">No Poster</div>
+                  )}
                 </div>
               </div>
 
@@ -113,22 +149,26 @@ export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, o
               <div className="flex-1 flex flex-col justify-between py-0.5 overflow-hidden">
                 <div className="min-w-0">
                   <h2 className="text-xl md:text-2xl font-extrabold leading-tight text-white line-clamp-2">
-                    {item.title || item.name} <span className="text-text-secondary font-normal">({(item.release_date || item.first_air_date)?.slice(0,4)})</span>
+                    {displayTitle} {displayYear && <span className="text-text-secondary font-normal">({displayYear})</span>}
                   </h2>
                   
                   <div className="mt-2.5 space-y-1 text-[0.8rem] md:text-sm text-text-secondary">
                     <div className="flex items-center gap-1.5">
                       <span className="font-medium opacity-70">State:</span>
-                      <span className="text-white/90 capitalize">{item.status || 'Released'}</span>
+                      <span className="text-white/90 capitalize">{displayStatus || 'Released'}</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Star className="w-3.5 h-3.5 text-accent fill-current" />
-                      <span className="font-bold text-white">{item.vote_average?.toFixed(1)}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 truncate">
-                      <span className="font-medium opacity-70">Genre:</span>
-                      <span className="text-white/90">{item.genres?.map((g: any) => g.name).slice(0, 2).join(', ')}</span>
-                    </div>
+                    {displayRating && (
+                      <div className="flex items-center gap-1.5">
+                        <Star className="w-3.5 h-3.5 text-accent fill-current" />
+                        <span className="font-bold text-white">{displayRating.toFixed(1)}</span>
+                      </div>
+                    )}
+                    {displayGenres && displayGenres.length > 0 && (
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="font-medium opacity-70">Genre:</span>
+                        <span className="text-white/90">{displayGenres.slice(0, 2).join(', ')}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -138,7 +178,7 @@ export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, o
                     className="bg-accent text-white px-4 py-2 rounded-full text-[0.7rem] font-bold flex items-center gap-1.5 hover:brightness-110 transition-all active:scale-95 shadow-lg shadow-accent/20"
                     onClick={() => {
                       onClose();
-                      onWatchNow(item, mediaType);
+                      onWatchNow(item || { ...jikanData, id: jikanData.mal_id, title: jikanData.title, poster_path: jikanData.images?.jpg?.large_image_url }, mediaType);
                     }}
                   >
                     <Play className="w-3 h-3 fill-current" /> Watch Now
@@ -168,10 +208,30 @@ export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, o
             {/* Middle Section: Synopsis */}
             <div className="border-t border-white/10 pt-4">
               <h3 className="text-sm font-bold mb-2 text-white uppercase tracking-widest opacity-90">Synopsis</h3>
-              <p className="text-text-secondary text-[0.85rem] leading-relaxed">
-                {item.overview || 'The plot remains a mystery. Dive in to discover the story.'}
+              <p className="text-text-secondary text-[0.85rem] leading-relaxed line-clamp-6 md:line-clamp-none">
+                {displayOverview}
               </p>
             </div>
+
+            {/* Jikan Streaming Links */}
+            {jikanData?.streaming && jikanData.streaming.length > 0 && (
+              <div className="border-t border-white/10 pt-4">
+                <h3 className="text-sm font-bold mb-3 text-white uppercase tracking-widest opacity-90">Official Streaming</h3>
+                <div className="flex flex-wrap gap-2">
+                  {jikanData.streaming.map((s: any, idx: number) => (
+                    <a 
+                      key={idx}
+                      href={s.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-all flex items-center gap-1.5"
+                    >
+                      {s.name} <ExternalLink className="w-3 h-3" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Bottom Section: Trailer */}
             {trailer && (

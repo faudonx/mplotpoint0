@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Search, Expand, ThumbsUp, ThumbsDown, Share2, Plus, List, PlayCircle, Loader2, Calendar, Star, ChevronDown, ChevronUp, LogOut, Film, Tv } from 'lucide-react';
+import { ArrowLeft, Search, Expand, ThumbsUp, ThumbsDown, Share2, Plus, List, PlayCircle, Loader2, Calendar, Star, ChevronDown, ChevronUp, LogOut, Film, Tv, ExternalLink } from 'lucide-react';
 import { tmdb } from '../lib/tmdb';
+import { jikan } from '../lib/jikan';
 import { auth, db } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs, addDoc, updateDoc, increment, limit } from 'firebase/firestore';
@@ -10,6 +11,8 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const [episodeNum, setEpisodeNum] = useState(initialEpisode);
   const [seasons, setSeasons] = useState<any[]>([]);
   const [episodes, setEpisodes] = useState<any[]>([]);
+  const [jikanEpisodes, setJikanEpisodes] = useState<any[]>([]);
+  const [jikanStreaming, setJikanStreaming] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState('');
@@ -188,10 +191,32 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
             const validSeasons = tvData.seasons.filter((s: any) => s.season_number > 0);
             setSeasons(validSeasons);
             loadEpisodes(seasonNum);
+          } else {
+            // If TMDB has no seasons, try Jikan fallback
+            loadJikanData();
           }
         } catch (e) {
-          console.error(e);
+          console.error('TMDB Seasons load failed, trying Jikan...', e);
+          loadJikanData();
         }
+      }
+    };
+
+    const loadJikanData = async () => {
+      try {
+        const title = item.title || item.name;
+        const jAnime = await jikan.getAnimeByTitle(title);
+        if (jAnime) {
+          const malId = jAnime.mal_id;
+          const [eps, stream] = await Promise.all([
+            jikan.getAnimeEpisodes(malId),
+            jikan.getAnimeStreaming(malId)
+          ]);
+          if (eps) setJikanEpisodes(eps);
+          if (stream) setJikanStreaming(stream);
+        }
+      } catch (err) {
+        console.error('Jikan fallback failed:', err);
       }
     };
 
@@ -202,9 +227,25 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
     setLoadingEpisodes(true);
     try {
       const data = await tmdb.getTVEpisodes(item.id, season);
-      if (data && data.episodes) setEpisodes(data.episodes);
+      if (data && data.episodes && data.episodes.length > 0) {
+        setEpisodes(data.episodes);
+      } else {
+        // Try Jikan fallback if TMDB episodes are empty
+        const title = item.title || item.name;
+        const jAnime = await jikan.getAnimeByTitle(title);
+        if (jAnime) {
+          const eps = await jikan.getAnimeEpisodes(jAnime.mal_id);
+          if (eps) setJikanEpisodes(eps);
+        }
+      }
     } catch (e) {
-      console.error(e);
+      console.error('TMDB Episodes load failed, trying Jikan...', e);
+      const title = item.title || item.name;
+      const jAnime = await jikan.getAnimeByTitle(title);
+      if (jAnime) {
+        const eps = await jikan.getAnimeEpisodes(jAnime.mal_id);
+        if (eps) setJikanEpisodes(eps);
+      }
     } finally {
       setLoadingEpisodes(false);
     }
@@ -422,6 +463,25 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
               <div className="bg-glass-bg p-6 rounded-2xl mb-8">
                 <h4 className="mb-3 text-lg font-semibold">Description</h4>
                 <p className="text-text-secondary leading-[1.6]">{item.overview || 'No description available.'}</p>
+                
+                {jikanStreaming.length > 0 && (
+                  <div className="mt-6 pt-6 border-t border-white/10">
+                    <h5 className="text-sm font-bold mb-3 text-white uppercase tracking-widest opacity-80">Official Streaming Alternatives</h5>
+                    <div className="flex flex-wrap gap-2">
+                      {jikanStreaming.map((s: any, idx: number) => (
+                        <a 
+                          key={idx}
+                          href={s.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg text-xs font-medium text-white/80 hover:bg-white/10 hover:text-white transition-all flex items-center gap-1.5"
+                        >
+                          {s.name} <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* TV Episodes */}
@@ -448,11 +508,22 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
 
                   {loadingEpisodes ? (
                     <div className="text-center p-12 text-text-secondary"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" /><p>Loading episodes...</p></div>
-                  ) : episodes.length === 0 ? (
-                    <div className="text-center p-12 text-text-secondary"><p>No episodes available</p></div>
+                  ) : (episodes.length === 0 && jikanEpisodes.length === 0) ? (
+                    <div className="text-center p-12 text-text-secondary">
+                      <p className="mb-4">No episodes available</p>
+                      {item.videos?.results?.find((v: any) => v.type === 'Trailer') && (
+                        <div className="max-w-md mx-auto aspect-video rounded-xl overflow-hidden border border-white/10">
+                          <iframe 
+                            src={`https://www.youtube.com/embed/${item.videos.results.find((v: any) => v.type === 'Trailer').key}`}
+                            className="w-full h-full"
+                            allowFullScreen
+                          />
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="flex flex-col md:grid md:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3 md:gap-4">
-                      {episodes.map((ep: any) => {
+                      {episodes.length > 0 ? episodes.map((ep: any) => {
                         const isActive = ep.episode_number === episodeNum;
                         const progressData = watchProgress[`s${seasonNum}e${ep.episode_number}`];
                         const progressPercent = progressData ? Math.min(100, (progressData.timestamp / (progressData.duration || 2400)) * 100) : 0;
@@ -498,6 +569,37 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
                               </div>
                               <div className="text-[0.8rem] md:text-base font-semibold mb-0.5 md:mb-2 line-clamp-1 md:line-clamp-2 text-text-primary">{ep.name || `Episode ${ep.episode_number}`}</div>
                               <div className="text-[0.65rem] md:text-sm text-text-secondary leading-tight line-clamp-1 md:line-clamp-2">{ep.overview || 'No description available.'}</div>
+                            </div>
+                          </div>
+                        );
+                      }) : jikanEpisodes.map((ep: any) => {
+                        const epNum = ep.mal_id;
+                        const isActive = epNum === episodeNum;
+                        
+                        return (
+                          <div 
+                            key={ep.mal_id}
+                            className={`bg-glass-bg border rounded-xl overflow-hidden cursor-pointer transition-all duration-300 relative hover:border-accent hover:shadow-[0_10px_30px_rgba(255,69,0,0.1)] flex flex-row md:flex-col h-[85px] md:h-auto ${isActive ? 'border-accent bg-accent/10' : 'border-white/10'}`}
+                            onClick={() => {
+                              setEpisodeNum(epNum);
+                              document.querySelector('.player-main')?.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                          >
+                            <div className="w-[110px] md:w-full h-full md:h-[160px] relative shrink-0 bg-modal-bg flex items-center justify-center">
+                              <Tv className="w-8 h-8 text-white/20" />
+                              {isActive && (
+                                <div className="absolute inset-0 bg-accent/30 flex items-center justify-center">
+                                  <PlayCircle className="w-6 h-6 text-white animate-pulse" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="p-2 md:p-4 flex-1 min-w-0 flex flex-col justify-center md:justify-start">
+                              <div className="flex items-center justify-between mb-0.5 md:mb-1">
+                                <div className="text-text-secondary text-[0.6rem] md:text-sm font-semibold uppercase tracking-wider">E{epNum}</div>
+                                {isActive && <div className="hidden md:block bg-accent text-white px-2 py-0.5 rounded text-[0.6rem] font-bold">NOW PLAYING</div>}
+                              </div>
+                              <div className="text-[0.8rem] md:text-base font-semibold mb-0.5 md:mb-2 line-clamp-1 md:line-clamp-2 text-text-primary">{ep.title || `Episode ${epNum}`}</div>
+                              <div className="text-[0.65rem] md:text-sm text-text-secondary leading-tight line-clamp-1 md:line-clamp-2">MAL ID: {ep.mal_id}</div>
                             </div>
                           </div>
                         );
