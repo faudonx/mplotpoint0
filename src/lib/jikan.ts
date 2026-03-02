@@ -1,4 +1,13 @@
-const JIKAN_BASE_URL = import.meta.env.VITE_JIKAN_API_BASE_URL || 'https://api.jikan.moe/v4';
+const JIKAN_BASE_URL = 'https://api.jikan.moe/v4';
+// We'll use the hardcoded URL for now to ensure stability, or safely check env
+const getBaseUrl = () => {
+  try {
+    return (import.meta as any).env?.VITE_JIKAN_API_BASE_URL || JIKAN_BASE_URL;
+  } catch (e) {
+    return JIKAN_BASE_URL;
+  }
+};
+const ACTUAL_BASE_URL = getBaseUrl();
 
 // Simple in-memory cache with TTL
 const cache: Record<string, { data: any; expiry: number }> = {};
@@ -56,23 +65,23 @@ async function rateLimitedFetch(url: string): Promise<any> {
 export const jikan = {
   // Search for an anime by title to get its MAL ID
   searchAnime: (query: string) => 
-    rateLimitedFetch(`${JIKAN_BASE_URL}/anime?q=${encodeURIComponent(query)}&limit=10`),
+    rateLimitedFetch(`${ACTUAL_BASE_URL}/anime?q=${encodeURIComponent(query)}&limit=10`),
   
   // Fetch anime by MyAnimeList (MAL) ID
   getAnimeDetails: (malId: number) => 
-    rateLimitedFetch(`${JIKAN_BASE_URL}/anime/${malId}/full`),
+    rateLimitedFetch(`${ACTUAL_BASE_URL}/anime/${malId}/full`),
   
   // Get episode list from /anime/{id}/episodes
   getAnimeEpisodes: (malId: number, page = 1) => 
-    rateLimitedFetch(`${JIKAN_BASE_URL}/anime/${malId}/episodes?page=${page}`),
+    rateLimitedFetch(`${ACTUAL_BASE_URL}/anime/${malId}/episodes?page=${page}`),
   
   // Get official streaming links from the /anime/{id}/streaming endpoint
   getAnimeStreaming: (malId: number) => 
-    rateLimitedFetch(`${JIKAN_BASE_URL}/anime/${malId}/streaming`),
+    rateLimitedFetch(`${ACTUAL_BASE_URL}/anime/${malId}/streaming`),
 
   // Helper to find MAL ID by title and year
   findMalId: async (title: string, year?: string) => {
-    let url = `${JIKAN_BASE_URL}/anime?q=${encodeURIComponent(title)}&limit=5`;
+    let url = `${ACTUAL_BASE_URL}/anime?q=${encodeURIComponent(title)}&limit=5`;
     if (year) url += `&start_date=${year}-01-01`;
     
     const results = await rateLimitedFetch(url);

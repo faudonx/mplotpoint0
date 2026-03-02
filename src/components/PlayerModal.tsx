@@ -14,7 +14,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const [jikanEpisodes, setJikanEpisodes] = useState<any[]>([]);
   const [jikanStreaming, setJikanStreaming] = useState<any[]>([]);
   const [jikanAnime, setJikanAnime] = useState<any>(null);
-  const [malId, setMalId] = useState<number | null>(item.mal_id || null);
+  const [malId, setMalId] = useState<number | null>(item?.mal_id || null);
   const [fallbackLayer, setFallbackLayer] = useState<'primary' | 'official' | 'trailer' | 'error'>('primary');
   const [isReporting, setIsReporting] = useState(false);
   const [recommendations, setRecommendations] = useState<any[]>([]);
@@ -42,7 +42,13 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const [currentTime, setCurrentTime] = useState(0);
   const [initialSeekTime, setInitialSeekTime] = useState(0);
   const [stableViews] = useState(() => (Math.random() * 5 + 0.5).toFixed(1));
-  const [quality, setQuality] = useState(() => localStorage.getItem('preferred_quality') || '1080');
+  const [quality, setQuality] = useState(() => {
+    try {
+      return localStorage.getItem('preferred_quality') || '1080';
+    } catch (e) {
+      return '1080';
+    }
+  });
 
   // Load watch progress
   const loadWatchProgress = async () => {
@@ -101,10 +107,12 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
         if (uid) {
           const currentKey = mediaType === 'movie' ? 'movie' : `s${seasonNum}e${episodeNum}`;
           const storageKey = `progress_${uid}_${item.id}_${currentKey}`;
-          localStorage.setItem(storageKey, JSON.stringify({
-            timestamp: next,
-            lastUpdated: new Date().toISOString()
-          }));
+          try {
+            localStorage.setItem(storageKey, JSON.stringify({
+              timestamp: next,
+              lastUpdated: new Date().toISOString()
+            }));
+          } catch (e) {}
         }
         return next;
       });
@@ -529,7 +537,9 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
                     onChange={(e) => {
                       const newQuality = e.target.value;
                       setQuality(newQuality);
-                      localStorage.setItem('preferred_quality', newQuality);
+                      try {
+                        localStorage.setItem('preferred_quality', newQuality);
+                      } catch (err) {}
                       // Reload iframe with new quality
                       setInitialSeekTime(currentTime);
                     }}
