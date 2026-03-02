@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Search, Expand, ThumbsUp, ThumbsDown, Share2, Plus, List, PlayCircle, Loader2, Calendar, Star, ChevronDown, ChevronUp, LogOut, Film, Tv, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Search, Expand, ThumbsUp, ThumbsDown, Share2, Plus, List, PlayCircle, Loader2, Calendar, Star, ChevronDown, ChevronUp, LogOut, Film, Tv, ExternalLink, AlertCircle, RefreshCw, Youtube } from 'lucide-react';
 import { tmdb } from '../lib/tmdb';
 import { jikan } from '../lib/jikan';
 import { auth, db } from '../lib/firebase';
@@ -13,6 +13,10 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [jikanEpisodes, setJikanEpisodes] = useState<any[]>([]);
   const [jikanStreaming, setJikanStreaming] = useState<any[]>([]);
+  const [jikanAnime, setJikanAnime] = useState<any>(null);
+  const [malId, setMalId] = useState<number | null>(item.mal_id || null);
+  const [fallbackLayer, setFallbackLayer] = useState<'primary' | 'official' | 'trailer' | 'error'>('primary');
+  const [isReporting, setIsReporting] = useState(false);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState('');
@@ -158,6 +162,14 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
         if (userDoc.exists()) setUserData(userDoc.data());
       }
 
+      // Load MAL ID mapping if not present
+      if (!malId && (mediaType === 'tv' || item.genres?.some((g: any) => g.id === 16))) {
+        const title = item.title || item.name;
+        const year = (item.release_date || item.first_air_date)?.slice(0, 4);
+        const id = await jikan.findMalId(title, year);
+        if (id) setMalId(id);
+      }
+
       // Load likes
       const likesQuery = query(collection(db, 'likes'), where('movieId', '==', item.id), where('mediaType', '==', mediaType));
       const likesSnap = await getDocs(likesQuery);
@@ -204,14 +216,21 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
 
     const loadJikanData = async () => {
       try {
-        const title = item.title || item.name;
-        const jAnime = await jikan.getAnimeByTitle(title);
-        if (jAnime) {
-          const malId = jAnime.mal_id;
-          const [eps, stream] = await Promise.all([
-            jikan.getAnimeEpisodes(malId),
-            jikan.getAnimeStreaming(malId)
+        let currentMalId = malId;
+        if (!currentMalId) {
+          const title = item.title || item.name;
+          const year = (item.release_date || item.first_air_date)?.slice(0, 4);
+          currentMalId = await jikan.findMalId(title, year);
+          if (currentMalId) setMalId(currentMalId);
+        }
+
+        if (currentMalId) {
+          const [details, eps, stream] = await Promise.all([
+            jikan.getAnimeDetails(currentMalId),
+            jikan.getAnimeEpisodes(currentMalId),
+            jikan.getAnimeStreaming(currentMalId)
           ]);
+          if (details) setJikanAnime(details);
           if (eps) setJikanEpisodes(eps);
           if (stream) setJikanStreaming(stream);
         }
@@ -231,19 +250,24 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
         setEpisodes(data.episodes);
       } else {
         // Try Jikan fallback if TMDB episodes are empty
-        const title = item.title || item.name;
-        const jAnime = await jikan.getAnimeByTitle(title);
-        if (jAnime) {
-          const eps = await jikan.getAnimeEpisodes(jAnime.mal_id);
+        if (malId) {
+          const eps = await jikan.getAnimeEpisodes(malId);
           if (eps) setJikanEpisodes(eps);
+        } else {
+          const title = item.title || item.name;
+          const year = (item.release_date || item.first_air_date)?.slice(0, 4);
+          const id = await jikan.findMalId(title, year);
+          if (id) {
+            setMalId(id);
+            const eps = await jikan.getAnimeEpisodes(id);
+            if (eps) setJikanEpisodes(eps);
+          }
         }
       }
     } catch (e) {
       console.error('TMDB Episodes load failed, trying Jikan...', e);
-      const title = item.title || item.name;
-      const jAnime = await jikan.getAnimeByTitle(title);
-      if (jAnime) {
-        const eps = await jikan.getAnimeEpisodes(jAnime.mal_id);
+      if (malId) {
+        const eps = await jikan.getAnimeEpisodes(malId);
         if (eps) setJikanEpisodes(eps);
       }
     } finally {
@@ -362,6 +386,23 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
     return 'just now';
   };
 
+  const handleReportBroken = () => {
+    setIsReporting(true);
+    setTimeout(() => {
+      if (fallbackLayer === 'primary') {
+        if (jikanStreaming.length > 0) setFallbackLayer('official');
+        else if (jikanAnime?.trailer?.youtube_id) setFallbackLayer('trailer');
+        else setFallbackLayer('error');
+      } else if (fallbackLayer === 'official') {
+        if (jikanAnime?.trailer?.youtube_id) setFallbackLayer('trailer');
+        else setFallbackLayer('error');
+      } else if (fallbackLayer === 'trailer') {
+        setFallbackLayer('error');
+      }
+      setIsReporting(false);
+    }, 800);
+  };
+
   const userInitial = userData?.nickname?.charAt(0).toUpperCase() || auth.currentUser?.email?.charAt(0).toUpperCase() || 'U';
   const nickname = userData?.nickname || auth.currentUser?.email?.split('@')[0] || 'User';
 
@@ -386,7 +427,82 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
             
             {/* Video Player */}
             <div className="w-full relative pb-[56.25%] bg-black shrink-0 group">
-              <iframe src={finalEmbedUrl} allowFullScreen className="absolute top-0 left-0 w-full h-full border-none"></iframe>
+              {fallbackLayer === 'primary' ? (
+                <iframe src={finalEmbedUrl} allowFullScreen className="absolute top-0 left-0 w-full h-full border-none"></iframe>
+              ) : fallbackLayer === 'official' ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-modal-bg">
+                  <AlertCircle className="w-12 h-12 text-accent mb-4" />
+                  <h3 className="text-xl font-bold mb-2">Media Unavailable on Primary Source</h3>
+                  <p className="text-text-secondary mb-6 max-w-md">This episode is blocked or missing. Please use the official streaming links below to watch on their respective platforms.</p>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {jikanStreaming.map((s: any, idx: number) => (
+                      <a 
+                        key={idx}
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-accent text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 hover:brightness-110 transition-all shadow-lg shadow-accent/20"
+                      >
+                        Watch on {s.name} <ExternalLink className="w-4 h-4" />
+                      </a>
+                    ))}
+                  </div>
+                  <button 
+                    className="mt-8 text-text-secondary hover:text-white text-sm underline flex items-center gap-2"
+                    onClick={() => setFallbackLayer('trailer')}
+                  >
+                    Watch Trailer Instead
+                  </button>
+                </div>
+              ) : fallbackLayer === 'trailer' ? (
+                <div className="absolute inset-0 flex flex-col bg-modal-bg">
+                  <div className="flex-1 relative">
+                    <iframe 
+                      src={jikan.getTrailerUrl(jikanAnime)} 
+                      allowFullScreen 
+                      className="absolute inset-0 w-full h-full border-none"
+                    ></iframe>
+                  </div>
+                  <div className="bg-accent/10 border-t border-accent/20 p-3 flex items-center justify-center gap-3">
+                    <Youtube className="w-5 h-5 text-accent" />
+                    <span className="text-sm font-medium text-white">Full episode not available – watch trailer.</span>
+                    <button 
+                      className="ml-4 bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-xs font-bold transition-colors"
+                      onClick={() => setFallbackLayer('official')}
+                    >
+                      Official Links
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-modal-bg">
+                  <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
+                  <h3 className="text-2xl font-bold mb-2">Content Not Found</h3>
+                  <p className="text-text-secondary mb-8 max-w-md">We couldn't find a working source for this episode. Please check back later or try another episode.</p>
+                  <button 
+                    className="bg-white/10 hover:bg-white/20 text-white px-8 py-3 rounded-full font-bold transition-all flex items-center gap-2"
+                    onClick={() => setFallbackLayer('primary')}
+                  >
+                    <RefreshCw className="w-4 h-4" /> Retry Primary Source
+                  </button>
+                </div>
+              )}
+
+              {/* Player Controls Overlays */}
+              <div className="absolute top-4 right-4 z-20">
+                <button 
+                  className={`bg-black/60 backdrop-blur-md border border-white/10 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all hover:bg-red-500/20 hover:border-red-500/50 ${isReporting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={handleReportBroken}
+                  disabled={isReporting}
+                >
+                  {isReporting ? (
+                    <><Loader2 className="w-3 h-3 animate-spin" /> Switching Source...</>
+                  ) : (
+                    <><AlertCircle className="w-3 h-3" /> Report Issue / Try Fallback</>
+                  )}
+                </button>
+              </div>
+
               <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
                 {initialSeekTime > 0 && (
                   <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-[0.7rem] font-medium text-white flex items-center gap-2">

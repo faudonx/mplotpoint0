@@ -32,10 +32,14 @@ export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, o
         
         if (!data || isAnime) {
           const title = data?.title || data?.name;
+          const year = (data?.release_date || data?.first_air_date)?.slice(0, 4);
           if (title) {
             try {
-              const jData = await jikan.getAnimeByTitle(title);
-              if (jData) setJikanData(jData);
+              const malId = await jikan.findMalId(title, year);
+              if (malId) {
+                const jData = await jikan.getAnimeDetails(malId);
+                if (jData) setJikanData(jData);
+              }
             } catch (jikanErr) {
               console.error('Jikan fetch failed:', jikanErr);
             }
@@ -178,7 +182,14 @@ export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, o
                     className="bg-accent text-white px-4 py-2 rounded-full text-[0.7rem] font-bold flex items-center gap-1.5 hover:brightness-110 transition-all active:scale-95 shadow-lg shadow-accent/20"
                     onClick={() => {
                       onClose();
-                      onWatchNow(item || { ...jikanData, id: jikanData.mal_id, title: jikanData.title, poster_path: jikanData.images?.jpg?.large_image_url }, mediaType);
+                      const watchItem = item || { 
+                        ...jikanData, 
+                        id: jikanData.mal_id, 
+                        title: jikanData.title, 
+                        poster_path: jikanData.images?.jpg?.large_image_url,
+                        mal_id: jikanData.mal_id
+                      };
+                      onWatchNow(watchItem, mediaType);
                     }}
                   >
                     <Play className="w-3 h-3 fill-current" /> Watch Now
