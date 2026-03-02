@@ -115,7 +115,7 @@ export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, o
 
   return (
     <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-start md:items-center justify-center z-[2000] animate-fadeIn overflow-y-auto pt-20 pb-10 px-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="w-full h-auto md:max-h-[90vh] md:max-w-[600px] bg-bg-base rounded-2xl border border-white/10 relative animate-scaleIn scrollbar-hide p-5 md:p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+      <div className="w-full h-auto md:max-h-[90vh] md:max-w-[600px] lg:max-w-[1100px] bg-bg-base rounded-2xl border border-white/10 relative animate-scaleIn scrollbar-hide p-5 md:p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
         
         {/* Close Button */}
         <button 
@@ -130,9 +130,10 @@ export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, o
             <div className="animate-spin w-8 h-8 border-4 border-accent border-t-transparent rounded-full"></div>
           </div>
         ) : (item || jikanData) ? (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col lg:flex-row gap-8 lg:items-start">
             
-            {/* Top Section: Side-by-Side Thumbnail Layout */}
+            <div className="flex-1 flex flex-col gap-6">
+              {/* Top Section: Side-by-Side Thumbnail Layout */}
             <div className="flex gap-4 md:gap-6">
               {/* Left Column: Thumbnail */}
               <div className="w-[38%] shrink-0">
@@ -244,10 +245,13 @@ export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, o
               </div>
             )}
 
-            {/* Bottom Section: Trailer */}
+            </div>
+
+            {/* Trailer Section (Right side on desktop) */}
             {trailer && (
-              <div className="mt-2">
-                <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/10 shadow-2xl">
+              <div className="lg:w-[450px] lg:shrink-0 flex flex-col gap-3">
+                <h3 className="text-sm font-bold text-white uppercase tracking-widest opacity-90">Trailer</h3>
+                <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/10 shadow-2xl bg-black">
                   <iframe 
                     src={`https://www.youtube.com/embed/${trailer.key}?rel=0&modestbranding=1`} 
                     allowFullScreen 
