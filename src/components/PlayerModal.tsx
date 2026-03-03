@@ -16,6 +16,8 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const [jikanAnime, setJikanAnime] = useState<any>(null);
   const [malId, setMalId] = useState<number | null>(item?.mal_id || null);
   const [fallbackLayer, setFallbackLayer] = useState<'primary' | 'official' | 'trailer' | 'error'>('primary');
+  const [activeSource, setActiveSource] = useState('vidsrc.to');
+  const [hasStartedPlaying, setHasStartedPlaying] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
@@ -93,6 +95,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   useEffect(() => {
     if (!isOpen || !item) return;
     loadWatchProgress();
+    setHasStartedPlaying(false);
   }, [isOpen, item, seasonNum, episodeNum]);
 
   // Track time spent (Simulated since we can't access iframe internals)
@@ -298,20 +301,24 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   if (!isOpen || !item) return null;
 
   const title = item.title || item.name;
-  const embedUrl = mediaType === 'movie' 
-    ? `https://vidsrc.icu/embed/movie/${item.id}`
-    : `https://vidsrc.icu/embed/tv/${item.id}/${seasonNum}/${episodeNum}`;
-
-  // Use initialSeekTime and quality for the iframe URL
-  let finalEmbedUrl = embedUrl;
-  const params = new URLSearchParams();
-  if (initialSeekTime > 10) params.append('t', initialSeekTime.toString());
-  // Some embeds support quality/res params, we'll include it just in case
-  if (quality) params.append('quality', quality);
   
-  const queryString = params.toString();
-  if (queryString) {
-    finalEmbedUrl += (finalEmbedUrl.includes('?') ? '&' : '?') + queryString;
+  const getEmbedUrl = (source: string) => {
+    const baseUrl = source === 'vidsrc.to' ? 'https://vidsrc.to/embed' : 
+                    source === 'vidsrc.me' ? 'https://vidsrc.me/embed' : 
+                    source === 'vidsrc.icu' ? 'https://vidsrc.icu/embed' : 
+                    'https://vidsrc.to/embed';
+                    
+    return mediaType === 'movie' 
+      ? `${baseUrl}/movie/${item.id}`
+      : `${baseUrl}/tv/${item.id}/${seasonNum}/${episodeNum}`;
+  };
+
+  const embedUrl = getEmbedUrl(activeSource);
+
+  // Use initialSeekTime for the iframe URL if supported
+  let finalEmbedUrl = embedUrl;
+  if (initialSeekTime > 10) {
+    finalEmbedUrl += (finalEmbedUrl.includes('?') ? '&' : '?') + `t=${initialSeekTime}`;
   }
 
   const handleLike = async () => {
@@ -436,12 +443,26 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
             {/* Video Player */}
             <div className="w-full relative pb-[56.25%] bg-black shrink-0 group">
               {fallbackLayer === 'primary' ? (
-                <iframe 
-                  src={finalEmbedUrl} 
-                  allowFullScreen 
-                  className="absolute top-0 left-0 w-full h-full border-none"
-                  sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts"
-                ></iframe>
+                <div className="absolute inset-0">
+                  <iframe 
+                    src={finalEmbedUrl} 
+                    allowFullScreen 
+                    className="absolute top-0 left-0 w-full h-full border-none"
+                  ></iframe>
+                  
+                  {!hasStartedPlaying && (
+                    <div 
+                      className="absolute inset-0 z-10 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center cursor-pointer group/play transition-all hover:bg-black/20"
+                      onClick={() => setHasStartedPlaying(true)}
+                    >
+                      <div className="w-20 h-20 rounded-full bg-accent/90 flex items-center justify-center shadow-[0_0_50px_rgba(255,69,0,0.4)] transition-transform group-hover/play:scale-110">
+                        <PlayCircle className="w-12 h-12 text-white fill-white" />
+                      </div>
+                      <p className="mt-4 text-white font-bold text-lg drop-shadow-lg">Click to Start Playing</p>
+                      <p className="mt-1 text-white/60 text-sm">Safe Player Mode Active</p>
+                    </div>
+                  )}
+                </div>
               ) : fallbackLayer === 'official' ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-modal-bg">
                   <AlertCircle className="w-12 h-12 text-accent mb-4" />
@@ -502,7 +523,22 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
               )}
 
               {/* Player Controls Overlays */}
-              <div className="absolute top-4 right-4 z-20">
+              <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+                <div className="hidden md:flex items-center bg-black/60 backdrop-blur-md border border-white/10 rounded-full p-1">
+                  {['vidsrc.to', 'vidsrc.me', 'vidsrc.icu'].map((src) => (
+                    <button
+                      key={src}
+                      onClick={() => {
+                        setActiveSource(src);
+                        setHasStartedPlaying(false);
+                      }}
+                      className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${activeSource === src ? 'bg-accent text-white' : 'text-text-secondary hover:text-white'}`}
+                    >
+                      {src.split('.')[1].toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+                
                 <button 
                   className={`bg-black/60 backdrop-blur-md border border-white/10 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all hover:bg-red-500/20 hover:border-red-500/50 ${isReporting ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={handleReportBroken}
