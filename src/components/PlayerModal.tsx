@@ -436,7 +436,12 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
             {/* Video Player */}
             <div className="w-full relative pb-[56.25%] bg-black shrink-0 group">
               {fallbackLayer === 'primary' ? (
-                <iframe src={finalEmbedUrl} allowFullScreen className="absolute top-0 left-0 w-full h-full border-none"></iframe>
+                <iframe 
+                  src={finalEmbedUrl} 
+                  allowFullScreen 
+                  className="absolute top-0 left-0 w-full h-full border-none"
+                  sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts"
+                ></iframe>
               ) : fallbackLayer === 'official' ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-modal-bg">
                   <AlertCircle className="w-12 h-12 text-accent mb-4" />
