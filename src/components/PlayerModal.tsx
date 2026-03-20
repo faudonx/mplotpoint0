@@ -5,6 +5,7 @@ import { jikan } from '../lib/jikan';
 import { auth, db } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs, addDoc, updateDoc, increment, limit } from 'firebase/firestore';
+import { SafePlayer } from './SafePlayer';
 
 export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 1, initialEpisode = 1, onOpenDetail, onShowRestricted, onOpenAuth, onOpenWatchlist }: any) {
   const [seasonNum, setSeasonNum] = useState(initialSeason);
@@ -17,6 +18,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const [malId, setMalId] = useState<number | null>(item?.mal_id || null);
   const [fallbackLayer, setFallbackLayer] = useState<'primary' | 'official' | 'trailer' | 'error'>('primary');
   const [activeSource, setActiveSource] = useState('vidsrc.to');
+  const [hasStartedPlaying, setHasStartedPlaying] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
@@ -94,6 +96,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   useEffect(() => {
     if (!isOpen || !item) return;
     loadWatchProgress();
+    setHasStartedPlaying(false);
   }, [isOpen, item, seasonNum, episodeNum]);
 
   // Track time spent (Simulated since we can't access iframe internals)
@@ -441,13 +444,12 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
             {/* Video Player */}
             <div className="w-full relative pb-[56.25%] bg-black shrink-0 group">
               {fallbackLayer === 'primary' ? (
-                <div className="absolute inset-0">
-                  <iframe 
-                    src={finalEmbedUrl} 
-                    allowFullScreen 
-                    className="absolute top-0 left-0 w-full h-full border-none"
-                  ></iframe>
-                </div>
+                <SafePlayer 
+                  src={finalEmbedUrl}
+                  title={title}
+                  className="absolute inset-0 w-full h-full"
+                  onPlay={() => setHasStartedPlaying(true)}
+                />
               ) : fallbackLayer === 'official' ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-modal-bg">
                   <AlertCircle className="w-12 h-12 text-accent mb-4" />
@@ -476,11 +478,11 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
               ) : fallbackLayer === 'trailer' ? (
                 <div className="absolute inset-0 flex flex-col bg-modal-bg">
                   <div className="flex-1 relative">
-                    <iframe 
+                    <SafePlayer 
                       src={jikan.getTrailerUrl(jikanAnime)} 
-                      allowFullScreen 
-                      className="absolute inset-0 w-full h-full border-none"
-                    ></iframe>
+                      title={`${title} Trailer`}
+                      className="absolute inset-0 w-full h-full"
+                    />
                   </div>
                   <div className="bg-accent/10 border-t border-accent/20 p-3 flex items-center justify-center gap-3">
                     <Youtube className="w-5 h-5 text-accent" />
@@ -515,6 +517,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
                       key={src}
                       onClick={() => {
                         setActiveSource(src);
+                        setHasStartedPlaying(false);
                       }}
                       className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${activeSource === src ? 'bg-accent text-white' : 'text-text-secondary hover:text-white'}`}
                     >
