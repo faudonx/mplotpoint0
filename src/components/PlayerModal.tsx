@@ -16,7 +16,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const [jikanAnime, setJikanAnime] = useState<any>(null);
   const [malId, setMalId] = useState<number | null>(item?.mal_id || null);
   const [fallbackLayer, setFallbackLayer] = useState<'primary' | 'official' | 'trailer' | 'error'>('primary');
-  const [activeSource, setActiveSource] = useState('vidsrc.wtf');
+  const [activeSource, setActiveSource] = useState('vidsrc.wtf.1');
   const [isReporting, setIsReporting] = useState(false);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
@@ -301,10 +301,16 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const title = item.title || item.name;
   
   const getEmbedUrl = (source: string) => {
-    if (source === 'vidsrc.wtf') {
+    if (source === 'vidsrc.wtf.1') {
       return mediaType === 'movie'
         ? `https://vidsrc.wtf/api/1/movie/?id=${item.id}&color=e01621`
         : `https://vidsrc.wtf/api/1/tv/?id=${item.id}&s=${seasonNum}&e=${episodeNum}&color=e01621`;
+    }
+
+    if (source === 'vidsrc.wtf.4') {
+      return mediaType === 'movie'
+        ? `https://vidsrc.wtf/api/4/movie/?id=${item.id}&color=e01621`
+        : `https://vidsrc.wtf/api/4/tv/?id=${item.id}&s=${seasonNum}&e=${episodeNum}&color=e01621`;
     }
 
     if (source === '2embed.cc') {
@@ -313,14 +319,18 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
         : `https://www.2embed.cc/embedtv/${item.id}&s=${seasonNum}&e=${episodeNum}`;
     }
 
-    const baseUrl = source === 'vidsrc.to' ? 'https://vidsrc.to/embed' : 
-                    source === 'vidsrc.me' ? 'https://vidsrc.me/embed' : 
-                    source === 'vidsrc.icu' ? 'https://vidsrc.icu/embed' : 
-                    'https://vidsrc.to/embed';
+    const baseUrl = source === 'vidsrc.icu' ? 'https://vidsrc.icu/embed' : 
+                    'https://vidsrc.wtf/api/1/movie/?id='; // Fallback
                     
-    return mediaType === 'movie' 
-      ? `${baseUrl}/movie/${item.id}`
-      : `${baseUrl}/tv/${item.id}/${seasonNum}/${episodeNum}`;
+    if (source === 'vidsrc.icu') {
+      return mediaType === 'movie' 
+        ? `${baseUrl}/movie/${item.id}`
+        : `${baseUrl}/tv/${item.id}/${seasonNum}/${episodeNum}`;
+    }
+
+    return mediaType === 'movie'
+      ? `https://vidsrc.wtf/api/1/movie/?id=${item.id}&color=e01621`
+      : `https://vidsrc.wtf/api/1/tv/?id=${item.id}&s=${seasonNum}&e=${episodeNum}&color=e01621`;
   };
 
   const embedUrl = getEmbedUrl(activeSource);
@@ -523,11 +533,10 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
               <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                 <div className="hidden md:flex items-center bg-black/60 backdrop-blur-md border border-white/10 rounded-full p-1">
                   {[
-                    { id: 'vidsrc.wtf', label: 'Server 1' },
-                    { id: 'vidsrc.to', label: 'Server 2' },
-                    { id: 'vidsrc.me', label: 'Server 3' },
-                    { id: 'vidsrc.icu', label: 'Server 4' },
-                    { id: '2embed.cc', label: 'Server 5' }
+                    { id: 'vidsrc.wtf.1', label: 'Server 1' },
+                    { id: 'vidsrc.wtf.4', label: 'Server 2' },
+                    { id: 'vidsrc.icu', label: 'Server 3' },
+                    { id: '2embed.cc', label: 'Server 4' }
                   ].map((src) => (
                     <button
                       key={src.id}
