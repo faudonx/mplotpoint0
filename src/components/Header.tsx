@@ -107,7 +107,7 @@ export function Header({ user, onOpenAuth, onOpenWatchlist, onShowRestricted, on
   const initial = nickname.charAt(0).toUpperCase();
 
   return (
-    <header className={`fixed top-0 w-full z-50 transition-all duration-300 flex items-center justify-between px-4 md:px-16 py-3 md:py-4 gap-4 ${scrolled ? 'bg-[#050a10]/95 shadow-[0_4px_30px_rgba(0,0,0,0.4)]' : 'bg-[#050a10]/85 backdrop-blur-md border-b border-white/10'}`}>
+    <header className={`fixed top-0 w-full z-[11000] transition-all duration-300 flex items-center justify-between px-4 md:px-16 py-3 md:py-4 gap-4 ${scrolled ? 'bg-[#050a10]/95 shadow-[0_4px_30px_rgba(0,0,0,0.4)]' : 'bg-[#050a10]/85 backdrop-blur-md border-b border-white/10'}`}>
       <a 
         href="/" 
         className="text-xl md:text-2xl font-bold tracking-tighter bg-gradient-to-br from-white to-accent bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity shrink-0"
