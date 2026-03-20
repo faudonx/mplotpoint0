@@ -319,6 +319,12 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
         : `https://www.2embed.cc/embedtv/${item.id}&s=${seasonNum}&e=${episodeNum}`;
     }
 
+    if (source === '123embed.net') {
+      return mediaType === 'movie'
+        ? `https://play2.123embed.net/movie/${item.imdb_id || item.id}`
+        : `https://play2.123embed.net/tv/${item.id}/${seasonNum}/${episodeNum}`;
+    }
+
     const baseUrl = source === 'vidsrc.icu' ? 'https://vidsrc.icu/embed' : 
                     'https://vidsrc.wtf/api/1/movie/?id='; // Fallback
                     
@@ -536,7 +542,8 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
                     { id: 'vidsrc.wtf.1', label: 'Server 1' },
                     { id: 'vidsrc.wtf.4', label: 'Server 2' },
                     { id: 'vidsrc.icu', label: 'Server 3' },
-                    { id: '2embed.cc', label: 'Server 4' }
+                    { id: '2embed.cc', label: 'Server 4' },
+                    { id: '123embed.net', label: 'Server 5' }
                   ].map((src) => (
                     <button
                       key={src.id}
