@@ -97,6 +97,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
     if (!isOpen || !item) return;
     loadWatchProgress();
     setHasStartedPlaying(false);
+    setFallbackLayer('primary');
   }, [isOpen, item, seasonNum, episodeNum]);
 
   // Track time spent (Simulated since we can't access iframe internals)

@@ -89,7 +89,7 @@ export const SafePlayer: React.FC<SafePlayerProps> = ({ src, className, title, o
         className="absolute inset-0 w-full h-full border-none"
         allowFullScreen
         // Requirement 1: Balanced sandbox
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-pointer-lock"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-pointer-lock allow-top-navigation-by-user-activation"
       />
 
       {/* Requirement 3: Smart Click Protection Layer */}
