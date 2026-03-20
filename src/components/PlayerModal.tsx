@@ -16,7 +16,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const [jikanAnime, setJikanAnime] = useState<any>(null);
   const [malId, setMalId] = useState<number | null>(item?.mal_id || null);
   const [fallbackLayer, setFallbackLayer] = useState<'primary' | 'official' | 'trailer' | 'error'>('primary');
-  const [activeSource, setActiveSource] = useState('vidsrc.to');
+  const [activeSource, setActiveSource] = useState('vidsrc.wtf');
   const [isReporting, setIsReporting] = useState(false);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
@@ -307,6 +307,12 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
         : `https://vidsrc.wtf/api/1/tv/?id=${item.id}&s=${seasonNum}&e=${episodeNum}&color=e01621`;
     }
 
+    if (source === '2embed.cc') {
+      return mediaType === 'movie'
+        ? `https://www.2embed.cc/embed/${item.id}`
+        : `https://www.2embed.cc/embedtv/${item.id}&s=${seasonNum}&e=${episodeNum}`;
+    }
+
     const baseUrl = source === 'vidsrc.to' ? 'https://vidsrc.to/embed' : 
                     source === 'vidsrc.me' ? 'https://vidsrc.me/embed' : 
                     source === 'vidsrc.icu' ? 'https://vidsrc.icu/embed' : 
@@ -516,15 +522,21 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
               {/* Player Controls Overlays */}
               <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                 <div className="hidden md:flex items-center bg-black/60 backdrop-blur-md border border-white/10 rounded-full p-1">
-                  {['vidsrc.to', 'vidsrc.me', 'vidsrc.icu', 'vidsrc.wtf'].map((src) => (
+                  {[
+                    { id: 'vidsrc.wtf', label: 'Server 1' },
+                    { id: 'vidsrc.to', label: 'Server 2' },
+                    { id: 'vidsrc.me', label: 'Server 3' },
+                    { id: 'vidsrc.icu', label: 'Server 4' },
+                    { id: '2embed.cc', label: 'Server 5' }
+                  ].map((src) => (
                     <button
-                      key={src}
+                      key={src.id}
                       onClick={() => {
-                        setActiveSource(src);
+                        setActiveSource(src.id);
                       }}
-                      className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${activeSource === src ? 'bg-accent text-white' : 'text-text-secondary hover:text-white'}`}
+                      className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${activeSource === src.id ? 'bg-accent text-white' : 'text-text-secondary hover:text-white'}`}
                     >
-                      {src.split('.')[1].toUpperCase()}
+                      {src.label}
                     </button>
                   ))}
                 </div>
