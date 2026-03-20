@@ -121,19 +121,47 @@ export function Header({ user, onOpenAuth, onOpenWatchlist, onShowRestricted, on
       
       {/* Desktop Navigation */}
       <nav className="hidden md:flex gap-8 items-center text-base">
-        <a href="#movies" className="text-text-primary hover:text-accent font-medium transition-colors relative group py-1">
+        <a 
+          href="#movies" 
+          className="text-text-primary hover:text-accent font-medium transition-colors relative group py-1"
+          onClick={(e) => {
+            e.preventDefault();
+            onGoHome('movies');
+          }}
+        >
           Movies
           <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-accent transition-all duration-200 group-hover:w-full"></span>
         </a>
-        <a href="#tv" className="text-text-primary hover:text-accent font-medium transition-colors relative group py-1">
+        <a 
+          href="#tv" 
+          className="text-text-primary hover:text-accent font-medium transition-colors relative group py-1"
+          onClick={(e) => {
+            e.preventDefault();
+            onGoHome('tv');
+          }}
+        >
           TV Shows
           <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-accent transition-all duration-200 group-hover:w-full"></span>
         </a>
-        <a href="#anime" className="text-text-primary hover:text-accent font-medium transition-colors relative group py-1">
+        <a 
+          href="#anime" 
+          className="text-text-primary hover:text-accent font-medium transition-colors relative group py-1"
+          onClick={(e) => {
+            e.preventDefault();
+            onGoHome('anime');
+          }}
+        >
           Anime
           <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-accent transition-all duration-200 group-hover:w-full"></span>
         </a>
-        <a href="#kdrama" className="text-text-primary hover:text-accent font-medium transition-colors relative group py-1">
+        <a 
+          href="#kdrama" 
+          className="text-text-primary hover:text-accent font-medium transition-colors relative group py-1"
+          onClick={(e) => {
+            e.preventDefault();
+            onGoHome('kdrama');
+          }}
+        >
           K-Drama
           <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-accent transition-all duration-200 group-hover:w-full"></span>
         </a>
@@ -303,7 +331,11 @@ export function Header({ user, onOpenAuth, onOpenWatchlist, onShowRestricted, on
             <a 
               href="#movies" 
               className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors"
-              onClick={() => setIsMenuOpen(false)}
+              onClick={(e) => {
+                e.preventDefault();
+                setIsMenuOpen(false);
+                onGoHome('movies');
+              }}
             >
               <span className="font-medium">Movies</span>
               <ChevronDown className="-rotate-90 w-4 h-4 text-text-secondary" />
@@ -311,7 +343,11 @@ export function Header({ user, onOpenAuth, onOpenWatchlist, onShowRestricted, on
             <a 
               href="#tv" 
               className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors"
-              onClick={() => setIsMenuOpen(false)}
+              onClick={(e) => {
+                e.preventDefault();
+                setIsMenuOpen(false);
+                onGoHome('tv');
+              }}
             >
               <span className="font-medium">TV Shows</span>
               <ChevronDown className="-rotate-90 w-4 h-4 text-text-secondary" />
@@ -319,7 +355,11 @@ export function Header({ user, onOpenAuth, onOpenWatchlist, onShowRestricted, on
             <a 
               href="#anime" 
               className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors"
-              onClick={() => setIsMenuOpen(false)}
+              onClick={(e) => {
+                e.preventDefault();
+                setIsMenuOpen(false);
+                onGoHome('anime');
+              }}
             >
               <span className="font-medium">Anime</span>
               <ChevronDown className="-rotate-90 w-4 h-4 text-text-secondary" />
@@ -327,7 +367,11 @@ export function Header({ user, onOpenAuth, onOpenWatchlist, onShowRestricted, on
             <a 
               href="#kdrama" 
               className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors"
-              onClick={() => setIsMenuOpen(false)}
+              onClick={(e) => {
+                e.preventDefault();
+                setIsMenuOpen(false);
+                onGoHome('kdrama');
+              }}
             >
               <span className="font-medium">K-Drama</span>
               <ChevronDown className="-rotate-90 w-4 h-4 text-text-secondary" />

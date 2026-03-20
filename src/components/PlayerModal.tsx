@@ -442,7 +442,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const nickname = userData?.nickname || auth.currentUser?.email?.split('@')[0] || 'User';
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[2000] animate-fadeIn pt-[60px] md:pt-[72px]">
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[4000] animate-fadeIn pt-[60px] md:pt-[72px]">
       <div className="w-full h-full bg-modal-bg flex flex-col overflow-hidden relative">
         
         {/* Floating Back Button */}

@@ -55,20 +55,45 @@ export default function App() {
     setIsPlayerOpen(false); 
   };
 
-  const handleGoHome = () => {
+  const handleGoHome = (targetId?: string) => {
     setIsDetailOpen(false);
     setIsPlayerOpen(false);
     setIsWatchlistOpen(false);
     setIsAuthOpen(false);
     setIsRestrictedOpen(false);
     setIsConfirmOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    if (typeof targetId === 'string' && targetId) {
+      setTimeout(() => {
+        const element = document.getElementById(targetId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const handleWatchNow = (item: any, mediaType: 'movie' | 'tv') => {
     setActiveItem(item);
     setActiveMediaType(mediaType);
     setIsPlayerOpen(true);
+  };
+
+  const handleShowRestricted = () => {
+    setIsPlayerOpen(false);
+    setIsRestrictedOpen(true);
+  };
+
+  const handleOpenAuth = () => {
+    setIsPlayerOpen(false);
+    setIsAuthOpen(true);
+  };
+
+  const handleOpenWatchlist = () => {
+    setIsPlayerOpen(false);
+    setIsWatchlistOpen(true);
   };
 
   const handleShowConfirm = (title: string, message: string, type: string, onConfirm: () => void) => {
@@ -80,9 +105,9 @@ export default function App() {
     <div className="min-h-screen bg-bg-base text-text-primary font-sans">
       <Header 
         user={user} 
-        onOpenAuth={() => setIsAuthOpen(true)}
-        onOpenWatchlist={() => setIsWatchlistOpen(true)}
-        onShowRestricted={() => setIsRestrictedOpen(true)}
+        onOpenAuth={handleOpenAuth}
+        onOpenWatchlist={handleOpenWatchlist}
+        onShowRestricted={handleShowRestricted}
         onOpenDetail={handleOpenDetail}
         onGoHome={handleGoHome}
       />
@@ -91,7 +116,7 @@ export default function App() {
         <Hero 
           user={user}
           onOpenDetail={handleOpenDetail}
-          onShowRestricted={() => setIsRestrictedOpen(true)}
+          onShowRestricted={handleShowRestricted}
         />
 
         <div id="movies">
@@ -102,7 +127,7 @@ export default function App() {
             mediaType="movie"
             user={user}
             onOpenDetail={handleOpenDetail}
-            onShowRestricted={() => setIsRestrictedOpen(true)}
+            onShowRestricted={handleShowRestricted}
           />
         </div>
 
@@ -114,19 +139,19 @@ export default function App() {
             mediaType="tv"
             user={user}
             onOpenDetail={handleOpenDetail}
-            onShowRestricted={() => setIsRestrictedOpen(true)}
+            onShowRestricted={handleShowRestricted}
           />
         </div>
 
         <div id="anime">
           <MediaRow 
-            title="Popular Anime" 
             icon={PlaySquare} 
+            title="Popular Anime" 
             fetchFn={tmdb.getAnime} 
             mediaType="tv"
             user={user}
             onOpenDetail={handleOpenDetail}
-            onShowRestricted={() => setIsRestrictedOpen(true)}
+            onShowRestricted={handleShowRestricted}
           />
         </div>
 
@@ -138,7 +163,7 @@ export default function App() {
             mediaType="tv"
             user={user}
             onOpenDetail={handleOpenDetail}
-            onShowRestricted={() => setIsRestrictedOpen(true)}
+            onShowRestricted={handleShowRestricted}
           />
         </div>
       </main>
@@ -163,9 +188,9 @@ export default function App() {
         item={activeItem}
         mediaType={activeMediaType}
         onOpenDetail={handleOpenDetail}
-        onShowRestricted={() => setIsRestrictedOpen(true)}
-        onOpenAuth={() => setIsAuthOpen(true)}
-        onOpenWatchlist={() => setIsWatchlistOpen(true)}
+        onShowRestricted={handleShowRestricted}
+        onOpenAuth={handleOpenAuth}
+        onOpenWatchlist={handleOpenWatchlist}
       />
 
       <ConfirmModal 
@@ -185,7 +210,7 @@ export default function App() {
         onClose={() => setIsRestrictedOpen(false)}
         onLogin={() => {
           setIsRestrictedOpen(false);
-          setIsAuthOpen(true);
+          handleOpenAuth();
         }}
       />
 
