@@ -301,6 +301,12 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const title = item.title || item.name;
   
   const getEmbedUrl = (source: string) => {
+    if (source === 'vidsrc.wtf') {
+      return mediaType === 'movie'
+        ? `https://vidsrc.wtf/api/1/movie/?id=${item.id}&color=e01621`
+        : `https://vidsrc.wtf/api/1/tv/?id=${item.id}&s=${seasonNum}&e=${episodeNum}&color=e01621`;
+    }
+
     const baseUrl = source === 'vidsrc.to' ? 'https://vidsrc.to/embed' : 
                     source === 'vidsrc.me' ? 'https://vidsrc.me/embed' : 
                     source === 'vidsrc.icu' ? 'https://vidsrc.icu/embed' : 
@@ -510,7 +516,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
               {/* Player Controls Overlays */}
               <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                 <div className="hidden md:flex items-center bg-black/60 backdrop-blur-md border border-white/10 rounded-full p-1">
-                  {['vidsrc.to', 'vidsrc.me', 'vidsrc.icu'].map((src) => (
+                  {['vidsrc.to', 'vidsrc.me', 'vidsrc.icu', 'vidsrc.wtf'].map((src) => (
                     <button
                       key={src}
                       onClick={() => {
