@@ -70,7 +70,7 @@ export function WatchlistModal({ isOpen, onClose, onOpenDetail, onShowConfirm }:
   };
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[4000] animate-fadeIn" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[100] animate-fadeIn" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="w-[90%] max-w-[1200px] max-h-[90vh] bg-modal-bg rounded-2xl p-8 border border-white/10 relative overflow-y-auto animate-scaleIn">
         <div className="flex items-center justify-between mb-8 pb-4 border-b-2 border-white/10">
           <h2 className="text-3xl font-bold flex items-center gap-3">

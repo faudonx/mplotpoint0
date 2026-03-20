@@ -13,7 +13,7 @@ export function ConfirmModal({ isOpen, title, message, type, onConfirm, onCancel
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[5000] animate-fadeIn" onClick={(e) => e.target === e.currentTarget && onCancel()}>
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[200] animate-fadeIn" onClick={(e) => e.target === e.currentTarget && onCancel()}>
       <div className="bg-modal-bg border border-white/10 rounded-2xl p-8 max-w-[400px] w-[90%] text-center animate-scaleIn">
         {getIcon()}
         <h3 className="text-2xl font-bold mb-2">{title}</h3>

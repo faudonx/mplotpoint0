@@ -4,7 +4,7 @@ export function RestrictedModal({ isOpen, onClose, onLogin }: any) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[4000] animate-fadeIn" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[100] animate-fadeIn" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bg-modal-bg border border-white/10 rounded-2xl p-8 max-w-[400px] w-[90%] text-center animate-scaleIn">
         <Lock className="w-12 h-12 text-accent mx-auto mb-4" />
         <h3 className="text-2xl font-bold my-4">Please login to continue</h3>
