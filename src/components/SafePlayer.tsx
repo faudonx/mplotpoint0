@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { PlayCircle, ShieldCheck } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
 
 interface SafePlayerProps {
   src: string;
@@ -9,7 +8,6 @@ interface SafePlayerProps {
 }
 
 export const SafePlayer: React.FC<SafePlayerProps> = ({ src, className, title, onPlay }) => {
-  const [isUnlocked, setIsUnlocked] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -21,6 +19,7 @@ export const SafePlayer: React.FC<SafePlayerProps> = ({ src, className, title, o
 
     const handleGlobalClick = () => {
       lastClickTime = Date.now();
+      if (onPlay) onPlay();
     };
     window.addEventListener('click', handleGlobalClick, true);
 
@@ -58,12 +57,7 @@ export const SafePlayer: React.FC<SafePlayerProps> = ({ src, className, title, o
       window.removeEventListener('click', handleGlobalClick, true);
       observer.disconnect();
     };
-  }, []);
-
-  const handleUnlock = () => {
-    setIsUnlocked(true);
-    if (onPlay) onPlay();
-  };
+  }, [onPlay]);
 
   return (
     <div ref={containerRef} className={`relative overflow-hidden safe-player-container ${className}`}>
@@ -74,29 +68,12 @@ export const SafePlayer: React.FC<SafePlayerProps> = ({ src, className, title, o
         title={title || "Video Player"}
         className="absolute inset-0 w-full h-full border-none"
         allowFullScreen
+        referrerPolicy="origin"
         // We omit 'allow-downloads' to block the "setup" file downloads
         // We include 'allow-popups' to avoid breaking the player, but we block them via window.open override
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-pointer-lock allow-top-navigation-by-user-activation"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-pointer-lock allow-top-navigation-by-user-activation allow-modals allow-popups-to-escape-sandbox"
       />
-
-      {/* Transparent Click Interceptor */}
-      {!isUnlocked && (
-        <div 
-          className="absolute inset-0 z-50 bg-black/20 backdrop-blur-[1px] flex flex-col items-center justify-center cursor-pointer group transition-all hover:bg-black/10"
-          onClick={handleUnlock}
-        >
-          <div className="w-20 h-20 rounded-full bg-accent/80 flex items-center justify-center shadow-2xl transition-transform group-hover:scale-110">
-            <PlayCircle className="w-12 h-12 text-white fill-white" />
-          </div>
-          <div className="mt-4 flex flex-col items-center gap-1">
-            <p className="text-white font-bold text-lg drop-shadow-lg flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-green-400" />
-              Click to Start Video
-            </p>
-            <p className="text-white/60 text-xs">Ad-Shield Active</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
+
