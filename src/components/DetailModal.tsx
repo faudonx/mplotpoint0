@@ -4,6 +4,7 @@ import { tmdb } from '../lib/tmdb';
 import { jikan } from '../lib/jikan';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { SafePlayer } from './SafePlayer';
 
 export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, onShowConfirm }: any) {
   const [item, setItem] = useState<any>(null);
@@ -252,11 +253,11 @@ export function DetailModal({ isOpen, onClose, movieId, mediaType, onWatchNow, o
               <div className="lg:w-[450px] lg:shrink-0 flex flex-col gap-3">
                 <h3 className="text-sm font-bold text-white uppercase tracking-widest opacity-90">Trailer</h3>
                 <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/10 shadow-2xl bg-black">
-                  <iframe 
+                  <SafePlayer 
                     src={`https://www.youtube.com/embed/${trailer.key}?rel=0&modestbranding=1`} 
-                    allowFullScreen 
-                    className="absolute inset-0 w-full h-full border-none"
-                  ></iframe>
+                    title={`${displayTitle} Trailer`}
+                    className="absolute inset-0 w-full h-full"
+                  />
                 </div>
               </div>
             )}
