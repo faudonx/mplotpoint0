@@ -16,7 +16,7 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
   const [jikanAnime, setJikanAnime] = useState<any>(null);
   const [malId, setMalId] = useState<number | null>(item?.mal_id || null);
   const [fallbackLayer, setFallbackLayer] = useState<'primary' | 'official' | 'trailer' | 'error'>('primary');
-  const [activeSource, setActiveSource] = useState('vidsrc.wtf.1');
+  const [activeSource, setActiveSource] = useState('123embed.net');
   const [isReporting, setIsReporting] = useState(false);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
@@ -307,12 +307,6 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
         : `https://vidsrc.wtf/api/1/tv/?id=${item.id}&s=${seasonNum}&e=${episodeNum}&color=e01621`;
     }
 
-    if (source === 'vidsrc.wtf.4') {
-      return mediaType === 'movie'
-        ? `https://vidsrc.wtf/api/4/movie/?id=${item.id}&color=e01621`
-        : `https://vidsrc.wtf/api/4/tv/?id=${item.id}&s=${seasonNum}&e=${episodeNum}&color=e01621`;
-    }
-
     if (source === '2embed.cc') {
       return mediaType === 'movie'
         ? `https://www.2embed.cc/embed/${item.id}`
@@ -539,11 +533,10 @@ export function PlayerModal({ isOpen, onClose, item, mediaType, initialSeason = 
               <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                 <div className="hidden md:flex items-center bg-black/60 backdrop-blur-md border border-white/10 rounded-full p-1">
                   {[
-                    { id: 'vidsrc.wtf.1', label: 'Server 1' },
-                    { id: 'vidsrc.wtf.4', label: 'Server 2' },
-                    { id: 'vidsrc.icu', label: 'Server 3' },
-                    { id: '2embed.cc', label: 'Server 4' },
-                    { id: '123embed.net', label: 'Server 5' }
+                    { id: '123embed.net', label: 'Server 1' },
+                    { id: 'vidsrc.icu', label: 'Server 2' },
+                    { id: '2embed.cc', label: 'Server 3' },
+                    { id: 'vidsrc.wtf.1', label: 'Server 4' }
                   ].map((src) => (
                     <button
                       key={src.id}
