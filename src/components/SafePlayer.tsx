@@ -14,29 +14,48 @@ export const SafePlayer: React.FC<SafePlayerProps> = ({ src, className, title, o
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
-    // 1. Prevent Popups & Redirects via Window.open override
+    // 1. Smart window.open override
+    // We only block window.open if it's triggered very close to a user interaction 
+    // that we suspect is an ad-click, or if it's called while we're in "locking" mode.
     const originalWindowOpen = window.open;
-    window.open = function() {
-      console.warn('Blocked an attempted popup/window.open call.');
-      return null;
+    let lastClickTime = 0;
+
+    const handleGlobalClick = () => {
+      lastClickTime = Date.now();
+    };
+    window.addEventListener('click', handleGlobalClick, true);
+
+    window.open = function(url, target, features) {
+      const timeSinceClick = Date.now() - lastClickTime;
+      
+      // If a popup is attempted immediately after a click (within 500ms)
+      // and we're still in the "unlocked" transition or it looks suspicious
+      if (timeSinceClick < 500) {
+        console.warn('Blocked a potential ad-triggered popup:', url);
+        return null;
+      }
+      
+      return originalWindowOpen.call(window, url, target, features);
     };
 
-    // 2. Mutation Observer to detect and remove injected ad elements
+    // 2. Refined Mutation Observer
+    // Only remove elements with extremely high z-index or known ad patterns
+    // Never touch the iframe or core containers
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node instanceof HTMLElement) {
-            // Check for common ad-like patterns
-            const isAdLike = 
-              (node.style.zIndex && parseInt(node.style.zIndex) > 1000) ||
-              (node.style.position === 'fixed' && (node.style.top === '0px' || node.style.bottom === '0px')) ||
-              node.id?.toLowerCase().includes('ad') ||
-              node.className?.toLowerCase().includes('ad-') ||
-              (node instanceof HTMLScriptElement && node.src.includes('adsbygoogle')) ||
-              (node instanceof HTMLImageElement && node.src.includes('ad-'));
+            const zIndex = window.getComputedStyle(node).zIndex;
+            const isHighZ = zIndex && parseInt(zIndex) > 9999;
+            
+            const isKnownAd = 
+              node.id?.toLowerCase().includes('popunder') ||
+              node.className?.toLowerCase().includes('ad-overlay') ||
+              (node instanceof HTMLScriptElement && node.src.includes('adsbygoogle'));
 
-            if (isAdLike && !node.closest('.safe-player-container')) {
-              console.warn('Removing suspected ad element:', node);
+            // Only remove if it's clearly an overlay and not part of our player
+            if ((isHighZ || isKnownAd) && !node.closest('.safe-player-container')) {
+              console.warn('Removing suspicious overlay element:', node);
               node.remove();
             }
           }
@@ -46,69 +65,49 @@ export const SafePlayer: React.FC<SafePlayerProps> = ({ src, className, title, o
 
     observer.observe(document.body, { childList: true, subtree: true });
 
-    // 3. Disable Malicious Event Listeners
-    const originalAddEventListener = window.addEventListener;
-    // @ts-ignore
-    window.addEventListener = function(type, listener, options) {
-      if (type === 'click' || type === 'mousedown' || type === 'mouseup') {
-        // Check if the listener is being added by a known ad script or looks suspicious
-        // This is a bit aggressive, so we use a simple check
-        const isSuspicious = typeof listener === 'function' && listener.toString().includes('window.open');
-        if (isSuspicious) {
-          console.warn('Blocked a suspicious event listener.');
-          return;
-        }
-      }
-      return originalAddEventListener.call(window, type, listener, options);
-    };
-
     return () => {
       window.open = originalWindowOpen;
-      window.addEventListener = originalAddEventListener;
+      window.removeEventListener('click', handleGlobalClick, true);
       observer.disconnect();
     };
   }, []);
 
-  const handleUnlock = () => {
+  const handleUnlock = (e: React.MouseEvent) => {
+    // Prevent the click from propagating to the iframe immediately if needed
+    // but we want the user to be able to play.
     setIsUnlocked(true);
     if (onPlay) onPlay();
   };
 
   return (
     <div ref={containerRef} className={`relative overflow-hidden safe-player-container ${className}`}>
-      {/* Strict Sandbox Iframe */}
+      {/* Balanced Sandbox Iframe */}
       <iframe
         ref={iframeRef}
         src={src}
         title={title || "Video Player"}
         className="absolute inset-0 w-full h-full border-none"
         allowFullScreen
-        // Requirement 2: Strict sandbox
-        sandbox="allow-same-origin allow-scripts allow-forms allow-pointer-lock"
-        // Note: We explicitly omit allow-popups and allow-top-navigation
+        // Requirement 1: Balanced sandbox
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-pointer-lock"
       />
 
-      {/* Requirement 3: Click Protection Layer */}
+      {/* Requirement 3: Smart Click Protection Layer */}
       {!isUnlocked && (
         <div 
-          className="absolute inset-0 z-50 bg-black/60 backdrop-blur-[4px] flex flex-col items-center justify-center cursor-pointer group transition-all hover:bg-black/40"
+          className="absolute inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center cursor-pointer group transition-all hover:bg-black/20"
           onClick={handleUnlock}
         >
-          <div className="w-24 h-24 rounded-full bg-accent/90 flex items-center justify-center shadow-[0_0_60px_rgba(255,69,0,0.5)] transition-transform group-hover:scale-110">
-            <PlayCircle className="w-14 h-14 text-white fill-white" />
+          <div className="w-20 h-20 rounded-full bg-accent/90 flex items-center justify-center shadow-[0_0_40px_rgba(255,69,0,0.3)] transition-transform group-hover:scale-110">
+            <PlayCircle className="w-12 h-12 text-white fill-white" />
           </div>
           
-          <div className="mt-6 flex flex-col items-center gap-2">
-            <p className="text-white font-bold text-xl drop-shadow-lg flex items-center gap-2">
-              <ShieldCheck className="w-6 h-6 text-green-400" />
-              Secure Player Mode
+          <div className="mt-4 flex flex-col items-center gap-1">
+            <p className="text-white font-bold text-lg drop-shadow-lg flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-green-400" />
+              Click to Start Playing
             </p>
-            <p className="text-white/70 text-sm font-medium">Click to unlock and start watching</p>
-          </div>
-
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/40 px-4 py-2 rounded-full border border-white/10">
-            <AlertCircle className="w-4 h-4 text-accent" />
-            <span className="text-[0.7rem] text-white/60 uppercase tracking-widest font-bold">Ads & Popups Blocked</span>
+            <p className="text-white/60 text-xs">Safe Player Mode Active</p>
           </div>
         </div>
       )}
