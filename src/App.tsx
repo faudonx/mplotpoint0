@@ -14,6 +14,7 @@ import { RestrictedModal } from './components/RestrictedModal';
 import { WatchlistModal } from './components/WatchlistModal';
 
 import { Film, Tv, PlaySquare, Heart } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
@@ -220,6 +221,7 @@ export default function App() {
         onOpenDetail={handleOpenDetail}
         onShowConfirm={handleShowConfirm}
       />
+      <Analytics />
     </div>
   );
 }
